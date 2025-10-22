@@ -21,7 +21,7 @@ services:
               capabilities: [gpu]
     shm_size: "4g"
     ports:
-      - "${API_PORT:-8000}:${API_PORT:-8000}"
+      - "${API_PORT:-8000}:8000"
     networks:
       - ocr-network
 
