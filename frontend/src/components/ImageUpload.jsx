@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useDropzone } from 'react-dropzone'
 import { Upload, Image as ImageIcon, X } from 'lucide-react'
@@ -17,6 +17,27 @@ export default function ImageUpload({ onImageSelect, preview }) {
     },
     multiple: false
   })
+
+  useEffect(() => {
+    const handlePaste = (e) => {
+      const items = e.clipboardData?.items
+      if (!items) return
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const file = items[i].getAsFile()
+          if (file) {
+            onImageSelect(file)
+            e.preventDefault()
+          }
+          break
+        }
+      }
+    }
+
+    window.addEventListener('paste', handlePaste)
+    return () => window.removeEventListener('paste', handlePaste)
+  }, [onImageSelect])
 
   return (
     <div className="glass p-6 rounded-2xl space-y-4">
@@ -62,7 +83,10 @@ export default function ImageUpload({ onImageSelect, preview }) {
                 {isDragActive ? 'Drop it like it\'s hot! 🔥' : 'Drag & drop your image'}
               </p>
               <p className="text-sm text-gray-400 mt-1">
-                or click to browse • PNG, JPG, WEBP up to 10MB
+                or click to browse • <span className="text-cyan-400">Ctrl+V to paste</span>
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                PNG, JPG, WEBP up to 10MB
               </p>
             </div>
           </div>
