@@ -13,6 +13,7 @@ from transformers import AutoModel, AutoTokenizer
 from PIL import Image
 import uvicorn
 from decouple import config as env_config
+from pdf_utils import pdf_to_images
 
 # -----------------------------
 # Lifespan context for model loading
@@ -372,6 +373,172 @@ async def ocr_inference(
                 pass
         if out_dir:
             shutil.rmtree(out_dir, ignore_errors=True)
+
+@app.post("/api/ocr-pdf")
+async def ocr_pdf_inference(
+    file: UploadFile = File(...),
+    mode: str = Form("plain_ocr"),
+    prompt: str = Form(""),
+    grounding: bool = Form(False),
+    include_caption: bool = Form(False),
+    find_term: Optional[str] = Form(None),
+    schema: Optional[str] = Form(None),
+    base_size: int = Form(1024),
+    image_size: int = Form(640),
+    crop_mode: bool = Form(True),
+    test_compress: bool = Form(False),
+    dpi: int = Form(144),
+):
+    """
+    Perform OCR inference on uploaded PDF file (processes all pages)
+    
+    - **file**: PDF file to process
+    - **mode**: OCR mode (plain_ocr, markdown, tables_csv, etc.)
+    - **prompt**: Custom prompt for freeform mode
+    - **grounding**: Enable grounding boxes
+    - **include_caption**: Add image description
+    - **find_term**: Term to find (for find_ref mode)
+    - **schema**: JSON schema (for kv_json mode)
+    - **base_size**: Base processing size
+    - **image_size**: Image size parameter
+    - **crop_mode**: Enable crop mode
+    - **test_compress**: Test compression
+    - **dpi**: PDF rendering resolution (default: 144)
+    """
+    if model is None or tokenizer is None:
+        raise HTTPException(status_code=503, detail="Model not loaded yet")
+    
+    # Check if it's a PDF file
+    if not file.filename.lower().endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported for this endpoint")
+    
+    try:
+        # Read PDF content
+        pdf_content = await file.read()
+        
+        # Convert PDF to images
+        try:
+            images = pdf_to_images(pdf_content, dpi=dpi)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Failed to process PDF: {str(e)}")
+        
+        if not images:
+            raise HTTPException(status_code=400, detail="PDF contains no pages")
+        
+        # Build prompt
+        prompt_text = build_prompt(
+            mode=mode,
+            user_prompt=prompt,
+            grounding=grounding,
+            find_term=find_term,
+            schema=schema,
+            include_caption=include_caption,
+        )
+        
+        # Process each page
+        pages_results = []
+        for page_num, img in enumerate(images, 1):
+            tmp_img = None
+            out_dir = None
+            try:
+                # Save page image temporarily
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+                    img.save(tmp, format="PNG")
+                    tmp_img = tmp.name
+                
+                # Get page dimensions
+                orig_w, orig_h = img.size
+                
+                out_dir = tempfile.mkdtemp(prefix="dsocr_pdf_")
+                
+                # Run inference
+                res = model.infer(
+                    tokenizer,
+                    prompt=prompt_text,
+                    image_file=tmp_img,
+                    output_path=out_dir,
+                    base_size=base_size,
+                    image_size=image_size,
+                    crop_mode=crop_mode,
+                    save_results=False,
+                    test_compress=test_compress,
+                    eval_mode=True,
+                )
+                
+                # Normalize response
+                if isinstance(res, str):
+                    text = res.strip()
+                elif isinstance(res, dict) and "text" in res:
+                    text = str(res["text"]).strip()
+                elif isinstance(res, (list, tuple)):
+                    text = "\n".join(map(str, res)).strip()
+                else:
+                    text = ""
+                
+                # Fallback: check output file
+                if not text:
+                    mmd = os.path.join(out_dir, "result.mmd")
+                    if os.path.exists(mmd):
+                        with open(mmd, "r", encoding="utf-8") as fh:
+                            text = fh.read().strip()
+                if not text:
+                    text = f"No text returned by model for page {page_num}."
+                
+                # Parse grounding boxes with proper coordinate scaling
+                boxes = parse_detections(text, orig_w, orig_h) if ("<|det|>" in text or "<|ref|>" in text) else []
+                
+                # Clean grounding tags from display text
+                display_text = clean_grounding_text(text) if ("<|ref|>" in text or "<|grounding|>" in text) else text
+                
+                # If display text is empty after cleaning but we have boxes, show the labels
+                if not display_text and boxes:
+                    display_text = ", ".join([b["label"] for b in boxes])
+                
+                pages_results.append({
+                    "page": page_num,
+                    "text": display_text,
+                    "raw_text": text,
+                    "boxes": boxes,
+                    "image_dims": {"w": orig_w, "h": orig_h}
+                })
+                
+            finally:
+                if tmp_img:
+                    try:
+                        os.remove(tmp_img)
+                    except Exception:
+                        pass
+                if out_dir:
+                    shutil.rmtree(out_dir, ignore_errors=True)
+        
+        # Combine results from all pages
+        combined_text = "\n\n--- Page Break ---\n\n".join([p["text"] for p in pages_results])
+        all_boxes = []
+        for p in pages_results:
+            for box in p["boxes"]:
+                box_with_page = box.copy()
+                box_with_page["page"] = p["page"]
+                all_boxes.append(box_with_page)
+        
+        return JSONResponse({
+            "success": True,
+            "text": combined_text,
+            "pages": pages_results,
+            "total_pages": len(images),
+            "metadata": {
+                "mode": mode,
+                "grounding": grounding or (mode in {"find_ref","layout_map","pii_redact"}),
+                "base_size": base_size,
+                "image_size": image_size,
+                "crop_mode": crop_mode,
+                "dpi": dpi
+            }
+        })
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {str(e)}")
 
 if __name__ == "__main__":
     host = env_config("API_HOST", default="0.0.0.0")
