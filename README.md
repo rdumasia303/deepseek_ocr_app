@@ -4,7 +4,8 @@ Modern OCR web application powered by DeepSeek-OCR with a stunning React fronten
 
 ![DeepSeek OCR in Action](assets/multi-bird.png)
 
-> **Recent Updates (v2.1.1)**
+> **Recent Updates (v2.2.0)**
+> - ✨ **NEW: PDF Support** - Process multi-page PDF documents with automatic page-by-page OCR
 > - ✅ Fixed image removal button - now properly clears and allows re-upload
 > - ✅ Fixed multiple bounding boxes parsing - handles `[[x1,y1,x2,y2], [x1,y1,x2,y2]]` format
 > - ✅ Simplified to 4 core working modes for better stability
@@ -40,14 +41,19 @@ Modern OCR web application powered by DeepSeek-OCR with a stunning React fronten
 ## Features
 
 ### 4 Core OCR Modes
-- **Plain OCR** - Raw text extraction from any image
+- **Plain OCR** - Raw text extraction from any image or PDF
 - **Describe** - Generate intelligent image descriptions
 - **Find** - Locate specific terms with visual bounding boxes
 - **Freeform** - Custom prompts for specialized tasks
 
+### File Support
+- 📄 **PDF Documents** - Multi-page PDF processing with page-by-page OCR
+- 🖼️ **Images** - PNG, JPG, JPEG, WEBP, GIF, BMP formats
+
 ### UI Features
 - 🎨 Glass morphism design with animated gradients
 - 🎯 Drag & drop file upload (up to 100MB by default)
+- 📄 PDF preview with document icon
 - 🗑️ Easy image removal and re-upload
 - 📦 Grounding box visualization with proper coordinate scaling
 - ✨ Smooth animations (Framer Motion)
@@ -96,7 +102,7 @@ CROP_MODE=true         # Enable dynamic cropping for large images
 ## Tech Stack
 
 - **Frontend**: React 18 + Vite 5 + TailwindCSS 3 + Framer Motion 11
-- **Backend**: FastAPI + PyTorch + Transformers 4.46 + DeepSeek-OCR
+- **Backend**: FastAPI + PyTorch + Transformers 4.46 + DeepSeek-OCR + PyMuPDF
 - **Configuration**: python-decouple for environment management
 - **Server**: Nginx (reverse proxy)
 - **Container**: Docker + Docker Compose with multi-stage builds
@@ -287,6 +293,53 @@ For large images, the model uses dynamic cropping:
 - Coordinates are in [x1, y1, x2, y2] format (top-left, bottom-right)
 - **Supports multiple boxes**: When finding multiple instances, format is `[[x1,y1,x2,y2], [x1,y1,x2,y2], ...]`
 - Frontend automatically displays all boxes overlaid on the image with unique colors
+
+### POST /api/ocr-pdf
+
+**Parameters:**
+- `file` (file, required) - PDF file to process (up to 100MB)
+- `mode` (string) - OCR mode: `plain_ocr` | `describe` | `find_ref` | `freeform`
+- `prompt` (string) - Custom prompt for freeform mode
+- `grounding` (bool) - Enable bounding boxes (auto-enabled for find_ref)
+- `find_term` (string) - Term to locate in find_ref mode (supports multiple matches)
+- `base_size` (int) - Base processing size (default: 1024)
+- `image_size` (int) - Tile size for cropping (default: 640)
+- `crop_mode` (bool) - Enable dynamic cropping (default: true)
+- `include_caption` (bool) - Add image description (default: false)
+- `dpi` (int) - PDF rendering resolution (default: 144)
+
+**Response:**
+```json
+{
+  "success": true,
+  "text": "Combined text from all pages...",
+  "pages": [
+    {
+      "page": 1,
+      "text": "Page 1 text...",
+      "raw_text": "Page 1 raw text with tags...",
+      "boxes": [{"label": "field", "box": [x1, y1, x2, y2]}],
+      "image_dims": {"w": 1920, "h": 1080}
+    }
+  ],
+  "total_pages": 3,
+  "metadata": {
+    "mode": "plain_ocr",
+    "grounding": false,
+    "base_size": 1024,
+    "image_size": 640,
+    "crop_mode": true,
+    "dpi": 144
+  }
+}
+```
+
+**Note on PDF Processing:**
+- Each page is converted to an image at the specified DPI (default: 144)
+- OCR is performed on each page independently
+- Results are combined with page breaks in the main `text` field
+- Individual page results are available in the `pages` array
+- Bounding boxes include a `page` field indicating which page they belong to
 
 ## Examples
 
