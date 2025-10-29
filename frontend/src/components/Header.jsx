@@ -44,14 +44,14 @@ const Header = () => {
             animate={{ opacity: 1, x: 0 }}
           >
             <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-xl blur-lg opacity-75" />
-              <div className="relative bg-gradient-to-br from-purple-600 to-cyan-500 p-2 rounded-xl">
-                <Sparkles className="w-6 h-6" />
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl blur-lg opacity-75" />
+              <div className="relative bg-gradient-to-br from-blue-600 to-cyan-500 p-2 rounded-xl shadow-lg">
+                <Sparkles className="w-6 h-6 text-white" />
               </div>
             </div>
             <div>
-              <h1 className="text-2xl font-bold gradient-text">DeepSeek OCR</h1>
-              <p className="text-xs text-gray-400">{t('nextGenVisionAI')}</p>
+              <h1 className="text-2xl font-bold gradient-text text-gray-900 dark:text-white">DeepSeek OCR</h1>
+              <p className="text-xs text-gray-600 dark:text-gray-400">{t('nextGenVisionAI')}</p>
             </div>
           </motion.div>
 
@@ -79,7 +79,7 @@ const Header = () => {
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-all border border-white/10"
               >
                 <Languages className="w-4 h-4" />
-                <span className="text-sm font-medium">{currentLang.flag} {currentLang.name}</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">{currentLang.flag} {currentLang.name}</span>
               </button>
 
               {langDropdownOpen && (
