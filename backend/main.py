@@ -5,6 +5,7 @@ import shutil
 import io
 from typing import List, Dict, Any, Optional
 from contextlib import asynccontextmanager
+from concurrent.futures import ThreadPoolExecutor
 
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,44 +20,103 @@ import fitz  # PyMuPDF
 # -----------------------------
 # PDF to Images conversion
 # -----------------------------
-def pdf_to_images(pdf_path: str, dpi: int = 144) -> List[Image.Image]:
+def _convert_pdf_page(args):
     """
-    Convert PDF pages to PIL Images
+    Helper function to convert a single PDF page to PIL Image
+    This is used by ThreadPoolExecutor for parallel processing
     
     Args:
-        pdf_path: Path to the PDF file
-        dpi: DPI for rendering (default: 144)
+        args: tuple of (pdf_path, page_num, dpi)
     
     Returns:
-        List of PIL Image objects, one per page
+        tuple of (page_num, PIL Image object)
     """
-    images = []
+    pdf_path, page_num, dpi = args
+    
+    # Open the PDF document for this thread
     pdf_document = fitz.open(pdf_path)
     
     zoom = dpi / 72.0
     matrix = fitz.Matrix(zoom, zoom)
     
     # Set reasonable limit for large images (500 megapixels)
-    # This protects against decompression bombs while allowing large PDFs
     Image.MAX_IMAGE_PIXELS = 500_000_000
     
-    for page_num in range(pdf_document.page_count):
-        page = pdf_document[page_num]
-        pixmap = page.get_pixmap(matrix=matrix, alpha=False)
+    page = pdf_document[page_num]
+    pixmap = page.get_pixmap(matrix=matrix, alpha=False)
+    
+    # Convert pixmap to PIL Image
+    img_data = pixmap.tobytes("png")
+    img = Image.open(io.BytesIO(img_data))
+    
+    # Convert RGBA to RGB if needed
+    if img.mode in ('RGBA', 'LA'):
+        background = Image.new('RGB', img.size, (255, 255, 255))
+        background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+        img = background
+    
+    pdf_document.close()
+    return (page_num, img)
+
+
+def pdf_to_images(pdf_path: str, dpi: int = 144) -> List[Image.Image]:
+    """
+    Convert PDF pages to PIL Images using parallel processing
+    
+    Args:
+        pdf_path: Path to the PDF file
+        dpi: DPI for rendering (default: 144)
+    
+    Returns:
+        List of PIL Image objects, one per page (in correct order)
+    """
+    # Get max workers from environment, default to 4
+    max_workers = env_config("MAX_PDF_WORKERS", default=4, cast=int)
+    
+    # Open PDF to get page count
+    pdf_document = fitz.open(pdf_path)
+    page_count = pdf_document.page_count
+    pdf_document.close()
+    
+    # If only 1 page, no need for parallel processing
+    if page_count == 1:
+        pdf_document = fitz.open(pdf_path)
+        zoom = dpi / 72.0
+        matrix = fitz.Matrix(zoom, zoom)
+        Image.MAX_IMAGE_PIXELS = 500_000_000
         
-        # Convert pixmap to PIL Image
+        page = pdf_document[0]
+        pixmap = page.get_pixmap(matrix=matrix, alpha=False)
         img_data = pixmap.tobytes("png")
         img = Image.open(io.BytesIO(img_data))
         
-        # Convert RGBA to RGB if needed
         if img.mode in ('RGBA', 'LA'):
             background = Image.new('RGB', img.size, (255, 255, 255))
             background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
             img = background
         
-        images.append(img)
+        pdf_document.close()
+        return [img]
     
-    pdf_document.close()
+    # Use ThreadPoolExecutor for parallel page conversion
+    # Limit workers to min(max_workers, page_count) for efficiency
+    num_workers = min(max_workers, page_count)
+    
+    print(f"📄 Converting {page_count} PDF page(s) using {num_workers} worker(s)")
+    
+    # Prepare arguments for each page
+    page_args = [(pdf_path, page_num, dpi) for page_num in range(page_count)]
+    
+    # Process pages in parallel
+    with ThreadPoolExecutor(max_workers=num_workers) as executor:
+        results = list(executor.map(_convert_pdf_page, page_args))
+    
+    # Sort by page number to maintain correct order
+    results.sort(key=lambda x: x[0])
+    
+    # Extract images in correct order
+    images = [img for _, img in results]
+    
     return images
 
 # -----------------------------
