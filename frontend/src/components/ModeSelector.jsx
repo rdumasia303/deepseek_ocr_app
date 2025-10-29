@@ -64,7 +64,7 @@ export default function ModeSelector({
                   <Icon className="w-4 h-4" />
                 </div>
                 <p className={`text-xs font-medium ${isSelected ? 'text-white' : 'text-gray-300'}`}>
-                  {m.name}
+                  {t(m.id)}
                 </p>
               </div>
             </motion.button>
@@ -82,7 +82,7 @@ export default function ModeSelector({
             type="text"
             value={findTerm}
             onChange={(e) => onFindTermChange(e.target.value)}
-            placeholder="Enter term to find (e.g., Total, Invoice #)"
+            placeholder={t('enter_find_term')}
             className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-purple-500 transition-colors"
           />
         </motion.div>
@@ -97,7 +97,7 @@ export default function ModeSelector({
           <textarea
             value={prompt}
             onChange={(e) => onPromptChange(e.target.value)}
-            placeholder="Enter your custom prompt..."
+            placeholder={t('enter_custom_prompt')}
             className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-purple-500 transition-colors resize-none"
             rows={2}
           />

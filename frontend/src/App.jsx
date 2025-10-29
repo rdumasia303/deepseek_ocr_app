@@ -66,7 +66,7 @@ function App() {
 
   const handleSubmit = async () => {
     if (!image) {
-      setError('Please upload an image first')
+      setError(t('please_upload_image'))
       return
     }
 
@@ -96,7 +96,7 @@ function App() {
 
       setResult(response.data)
     } catch (err) {
-      setError(err.response?.data?.detail || err.message || 'An error occurred')
+      setError(err.response?.data?.detail || err.message || t('error_occurred'))
     } finally {
       setLoading(false)
     }
@@ -133,7 +133,7 @@ function App() {
       {/* Animated background */}
       <div className="fixed inset-0 -z-10">
         <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-pink-900/20 to-cyan-900/20" />
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxIDAgNiAyLjY5IDYgNnMtMi42OSA2LTYgNi02LTIuNjktNi02IDIuNjktNiA2LTZ6TTI0IDZjMy4zMSAwIDYgMi42OSA2IDZzLTIuNjkgNi02IDYtNi0yLjY5LTYtNiAyLjY5LTYgNi02ek00OCAzNmMzLjMxIDAgNiAyLjY5IDYgNnMtMi42OSA2LTYgNi02LTIuNjktNi02IDIuNjktNiA2LTZ6IiBzdHJva2U9InJnYmEoMTQ3LCA1MSwgMjM0LCAwLjEpIiBzdHJva2Utd2lkdGg9IjIiLz48L2c+PC9zdmc+')] opacity-30" />
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxIDAgNiAyLjY5IDYgNnMtMi42OSA2LTYgNi02LTIuNjktNi02IDEuMjItNiA2LTZ6TTI0IDZjMy4zMSAwIDYgMi42OSA2IDZzLTIuNjkgNi02IDYtNi0yLjY5LTYtNiAyLjY5LTYgNi02ek00OCAzNmMzLjMxIDAgNiAyLjY5IDYgNnMtMi42OSA2LTYgNi02LTIuNjktNi02IDIuNjktNiA2LTZ6IiBzdHJva2U9InJnYmEoMTQ3LCA1MSwgMjM0LCAwLjEpIiBzdHJva2Utd2lkdGg9IjIiLz48L2c+PC9zdmc+')] opacity-30" />
         <motion.div
           className="absolute top-20 left-20 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"
           animate={{
@@ -181,7 +181,6 @@ function App() {
               </div>
             </motion.div>
 
-            {/* 语言切换下拉框 */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -254,7 +253,7 @@ function App() {
             >
               <div className="flex items-center gap-2">
                 <Settings className="w-4 h-4 text-purple-400" />
-                <span className="text-sm font-medium text-gray-300">Advanced Settings</span>
+                <span className="text-sm font-medium text-gray-300">{t('advanced_settings')}</span>
               </div>
               <motion.div
                 animate={{ rotate: showAdvanced ? 180 : 0 }}
@@ -293,12 +292,12 @@ function App() {
                 {loading ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    <span className="font-semibold">Processing Magic...</span>
+                    <span className="font-semibold">{t('processing_magic')}</span>
                   </>
                 ) : (
                   <>
                     <Zap className="w-5 h-5" />
-                    <span className="font-semibold">Analyze Image</span>
+                    <span className="font-semibold">{t('analyze_image')}</span>
                   </>
                 )}
               </div>

@@ -2,8 +2,10 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Copy, Download, Sparkles, Loader2, CheckCircle2, ChevronDown } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
+import { useTranslation } from 'react-i18next';
 
 export default function ResultPanel({ result, loading, imagePreview, onCopy, onDownload }) {
+  const { t } = useTranslation();
   const canvasRef = useRef(null)
   const imgRef = useRef(null)
   const [showAdvanced, setShowAdvanced] = useState(false)
@@ -148,7 +150,7 @@ export default function ResultPanel({ result, loading, imagePreview, onCopy, onD
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-purple-400" />
-          <h3 className="font-semibold text-gray-200">Results</h3>
+          <h3 className="font-semibold text-gray-200">{t('results')}</h3>
         </div>
         
         {result && (
@@ -158,7 +160,7 @@ export default function ResultPanel({ result, loading, imagePreview, onCopy, onD
               className="glass glass-hover p-2 rounded-lg"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              title="Copy to clipboard"
+              title={t('copy_to_clipboard')}
             >
               <Copy className="w-4 h-4" />
             </motion.button>
@@ -167,7 +169,7 @@ export default function ResultPanel({ result, loading, imagePreview, onCopy, onD
               className="glass glass-hover p-2 rounded-lg"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              title="Download"
+              title={t('download')}
             >
               <Download className="w-4 h-4" />
             </motion.button>
@@ -193,7 +195,7 @@ export default function ResultPanel({ result, loading, imagePreview, onCopy, onD
               <Loader2 className="w-8 h-8 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-purple-400" />
             </div>
             <p className="text-sm text-gray-400 animate-pulse">
-              Processing your image with AI magic...
+              {t('processing_image')}
             </p>
           </motion.div>
         ) : result ? (
@@ -250,11 +252,11 @@ export default function ResultPanel({ result, loading, imagePreview, onCopy, onD
             {result.raw_text && (
               <details className="glass rounded-xl overflow-hidden">
                 <summary className="px-4 py-3 cursor-pointer flex items-center justify-between hover:bg-white/5 transition-colors">
-                  <span className="text-sm font-medium text-gray-300">🔍 Raw Model Response</span>
+                  <span className="text-sm font-medium text-gray-300">🔍 {t('raw_model_response')}</span>
                   <ChevronDown className="w-4 h-4 text-gray-400" />
                 </summary>
                 <div className="px-4 py-3 border-t border-white/10 space-y-2">
-                  <p className="text-xs text-gray-400 mb-2">Unprocessed output from the model (useful for debugging)</p>
+                  <p className="text-xs text-gray-400 mb-2">{t('raw_output_description')}</p>
                   <div className="bg-black/30 rounded-lg p-3 max-h-64 overflow-y-auto">
                     <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap break-words select-all">
                       {result.raw_text}
@@ -265,10 +267,10 @@ export default function ResultPanel({ result, loading, imagePreview, onCopy, onD
                       onClick={() => navigator.clipboard.writeText(result.raw_text)}
                       className="text-xs px-3 py-1 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
                     >
-                      Copy Raw
+                      {t('copy_raw')}
                     </button>
                     <span className="text-xs text-gray-500 py-1">
-                      {result.raw_text.length} characters
+                      {result.raw_text.length} {t('characters')}
                     </span>
                   </div>
                 </div>
@@ -278,13 +280,13 @@ export default function ResultPanel({ result, loading, imagePreview, onCopy, onD
             {/* Advanced Settings Dropdown */}
             <details className="glass rounded-xl overflow-hidden">
               <summary className="px-4 py-3 cursor-pointer flex items-center justify-between hover:bg-white/5 transition-colors">
-                <span className="text-sm font-medium text-gray-300">⚙️ Metadata & Debug Info</span>
+                <span className="text-sm font-medium text-gray-300">⚙️ {t('metadata_and_debug_info')}</span>
                 <ChevronDown className="w-4 h-4 text-gray-400" />
               </summary>
               <div className="px-4 py-3 border-t border-white/10 space-y-3">
                 {result.metadata && (
                   <div>
-                    <p className="text-xs text-gray-400 mb-2">Processing Metadata</p>
+                    <p className="text-xs text-gray-400 mb-2">{t('processing_metadata')}</p>
                     <pre className="text-xs text-gray-500 whitespace-pre-wrap">
                       {JSON.stringify(result.metadata, null, 2)}
                     </pre>
@@ -292,11 +294,11 @@ export default function ResultPanel({ result, loading, imagePreview, onCopy, onD
                 )}
                 {result.boxes?.length > 0 && (
                   <div>
-                    <p className="text-xs text-gray-400 mb-2">Parsed Bounding Boxes ({result.boxes.length})</p>
+                    <p className="text-xs text-gray-400 mb-2">{t('parsed_bounding_boxes')} ({result.boxes.length})</p>
                     <div className="bg-black/30 rounded-lg p-2 space-y-1 max-h-32 overflow-y-auto">
                       {result.boxes.map((box, idx) => (
                         <div key={idx} className="text-xs font-mono">
-                          <span className="text-cyan-400">Box {idx + 1}:</span>{' '}
+                          <span className="text-cyan-400">{t('box')} {idx + 1}:</span>{' '}
                           <span className="text-purple-400">{box.label}</span>{' '}
                           <span className="text-gray-500">
                             [{box.box.map(n => Math.round(n)).join(', ')}]
@@ -305,7 +307,7 @@ export default function ResultPanel({ result, loading, imagePreview, onCopy, onD
                       ))}
                     </div>
                     <p className="text-xs text-gray-500 mt-2">
-                      Coordinates are scaled from model output (0-999) to image pixels
+                      {t('coordinates_scaled')}
                     </p>
                   </div>
                 )}
@@ -319,7 +321,7 @@ export default function ResultPanel({ result, loading, imagePreview, onCopy, onD
               className="flex items-center justify-center gap-2 text-green-400"
             >
               <CheckCircle2 className="w-5 h-5" />
-              <span className="text-sm font-medium">Processing complete!</span>
+              <span className="text-sm font-medium">{t('processing_complete')}</span>
             </motion.div>
           </motion.div>
         ) : (
@@ -343,10 +345,10 @@ export default function ResultPanel({ result, loading, imagePreview, onCopy, onD
             </div>
             <div className="text-center">
               <p className="text-lg font-medium text-gray-300">
-                Ready to process
+                {t('ready_to_process')}
               </p>
               <p className="text-sm text-gray-500 mt-1">
-                Upload an image and hit analyze to see the magic!
+                {t('upload_and_analyze')}
               </p>
             </div>
           </motion.div>
