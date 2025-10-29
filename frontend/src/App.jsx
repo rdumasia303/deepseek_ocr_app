@@ -5,28 +5,14 @@ import ImageUpload from './components/ImageUpload'
 import ModeSelector from './components/ModeSelector'
 import ResultPanel from './components/ResultPanel'
 import AdvancedSettings from './components/AdvancedSettings'
+import Header from './components/Header'
 import axios from 'axios'
 import { useTranslation } from 'react-i18next';
-import { Languages } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api'
 
 function App() {
-  const { t, i18n } = useTranslation();
-  const [langDropdownOpen, setLangDropdownOpen] = useState(false);
-
-  const languages = [
-    { code: 'zh', name: '中文', flag: '🇨🇳' },
-    { code: 'en', name: 'English', flag: '🇺🇸' },
-  ];
-
-  const currentLang = languages.find(lang => lang.code === i18n.language) || languages[0];
-
-  const handleLanguageChange = (langCode) => {
-    i18n.changeLanguage(langCode);
-    setLangDropdownOpen(false);
-  };
-
+  const { t } = useTranslation();
   const [mode, setMode] = useState('plain_ocr')
   const [image, setImage] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
@@ -161,62 +147,7 @@ function App() {
       </div>
 
       {/* Header */}
-      <header className="sticky top-0 z-50 glass border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <motion.div 
-              className="flex items-center gap-3"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-            >
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-xl blur-lg opacity-75" />
-                <div className="relative bg-gradient-to-br from-purple-600 to-cyan-500 p-2 rounded-xl">
-                  <Sparkles className="w-6 h-6" />
-                </div>
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold gradient-text">DeepSeek OCR</h1>
-                <p className="text-xs text-gray-400">{t('nextGenVisionAI')}</p>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="relative"
-            >
-              <button
-                onClick={() => setLangDropdownOpen(!langDropdownOpen)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-all border border-white/10"
-              >
-                <Languages className="w-4 h-4" />
-                <span className="text-sm font-medium">{currentLang.flag} {currentLang.name}</span>
-              </button>
-
-              {langDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-40 glass border border-white/10 rounded-lg overflow-hidden shadow-xl">
-                  {languages.map((lang) => (
-                    <button
-                      key={lang.code}
-                      onClick={() => handleLanguageChange(lang.code)}
-                      className={`w-full flex items-center gap-2 px-4 py-2 text-sm transition-all ${
-                        i18n.language === lang.code
-                          ? 'bg-gradient-to-r from-purple-500/20 to-cyan-500/20 text-white'
-                          : 'text-gray-300 hover:bg-white/5'
-                      }`}
-                    >
-                      <span>{lang.flag}</span>
-                      <span>{lang.name}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </motion.div>
-
-          </div>
-        </div>
-      </header>
+      <Header/>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
