@@ -11,3 +11,5 @@ pillow
 safetensors
 torch
 python-decouple>=3.8
+PyMuPDF
+img2pdf
