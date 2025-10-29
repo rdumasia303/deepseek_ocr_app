@@ -36,8 +36,9 @@ def pdf_to_images(pdf_path: str, dpi: int = 144) -> List[Image.Image]:
     zoom = dpi / 72.0
     matrix = fitz.Matrix(zoom, zoom)
     
-    # Allow large images
-    Image.MAX_IMAGE_PIXELS = None
+    # Set reasonable limit for large images (500 megapixels)
+    # This protects against decompression bombs while allowing large PDFs
+    Image.MAX_IMAGE_PIXELS = 500_000_000
     
     for page_num in range(pdf_document.page_count):
         page = pdf_document[page_num]
@@ -356,6 +357,9 @@ async def ocr_inference(
             except Exception as e:
                 raise HTTPException(status_code=400, detail=f"Invalid image file: {str(e)}")
         
+        # Create single output directory for all pages
+        out_dir = tempfile.mkdtemp(prefix="dsocr_")
+        
         # Process each page/image
         all_results = []
         for idx, img in enumerate(images_list):
@@ -367,8 +371,6 @@ async def ocr_inference(
             
             # Get image dimensions
             orig_w, orig_h = img.size
-            
-            out_dir = tempfile.mkdtemp(prefix="dsocr_")
             
             # Run inference
             res = model.infer(
@@ -421,11 +423,6 @@ async def ocr_inference(
                 "image_dims": {"w": orig_w, "h": orig_h}
             }
             all_results.append(page_result)
-            
-            # Cleanup output directory for this page
-            if out_dir:
-                shutil.rmtree(out_dir, ignore_errors=True)
-                out_dir = None
         
         # Combine results for PDF or return single result for image
         if is_pdf and len(all_results) > 1:
