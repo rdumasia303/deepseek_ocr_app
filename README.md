@@ -85,6 +85,9 @@ MAX_UPLOAD_SIZE_MB=100  # Maximum file upload size
 BASE_SIZE=1024         # Base processing resolution
 IMAGE_SIZE=640         # Tile processing resolution
 CROP_MODE=true         # Enable dynamic cropping for large images
+
+# PDF Processing Configuration
+MAX_PDF_WORKERS=4      # Maximum CPU cores for parallel PDF conversion
 ```
 
 ### Environment Variables
@@ -98,6 +101,7 @@ CROP_MODE=true         # Enable dynamic cropping for large images
 - `BASE_SIZE`: Base image processing size (affects memory usage)
 - `IMAGE_SIZE`: Tile size for dynamic cropping
 - `CROP_MODE`: Enable/disable dynamic image cropping
+- `MAX_PDF_WORKERS`: Maximum number of CPU cores to use for parallel PDF to image conversion (default: 4)
 
 ## Tech Stack
 
