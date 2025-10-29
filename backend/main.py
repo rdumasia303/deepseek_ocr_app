@@ -3,6 +3,7 @@ import re
 import tempfile
 import shutil
 import io
+import logging
 from typing import List, Dict, Any, Optional
 from contextlib import asynccontextmanager
 from concurrent.futures import ThreadPoolExecutor
@@ -16,6 +17,14 @@ from PIL import Image
 import uvicorn
 from decouple import config as env_config
 import fitz  # PyMuPDF
+
+# Set up logging
+logger = logging.getLogger(__name__)
+
+# Set reasonable limit for large images (500 megapixels)
+# This protects against decompression bombs while allowing large PDFs
+# Set once globally at module level to avoid threading issues
+Image.MAX_IMAGE_PIXELS = 500_000_000
 
 # -----------------------------
 # PDF to Images conversion
@@ -38,9 +47,6 @@ def _convert_pdf_page(args):
     
     zoom = dpi / 72.0
     matrix = fitz.Matrix(zoom, zoom)
-    
-    # Set reasonable limit for large images (500 megapixels)
-    Image.MAX_IMAGE_PIXELS = 500_000_000
     
     page = pdf_document[page_num]
     pixmap = page.get_pixmap(matrix=matrix, alpha=False)
@@ -78,31 +84,16 @@ def pdf_to_images(pdf_path: str, dpi: int = 144) -> List[Image.Image]:
     page_count = pdf_document.page_count
     pdf_document.close()
     
-    # If only 1 page, no need for parallel processing
+    # If only 1 page, use the helper function directly
     if page_count == 1:
-        pdf_document = fitz.open(pdf_path)
-        zoom = dpi / 72.0
-        matrix = fitz.Matrix(zoom, zoom)
-        Image.MAX_IMAGE_PIXELS = 500_000_000
-        
-        page = pdf_document[0]
-        pixmap = page.get_pixmap(matrix=matrix, alpha=False)
-        img_data = pixmap.tobytes("png")
-        img = Image.open(io.BytesIO(img_data))
-        
-        if img.mode in ('RGBA', 'LA'):
-            background = Image.new('RGB', img.size, (255, 255, 255))
-            background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
-            img = background
-        
-        pdf_document.close()
+        _, img = _convert_pdf_page((pdf_path, 0, dpi))
         return [img]
     
     # Use ThreadPoolExecutor for parallel page conversion
     # Limit workers to min(max_workers, page_count) for efficiency
     num_workers = min(max_workers, page_count)
     
-    print(f"📄 Converting {page_count} PDF page(s) using {num_workers} worker(s)")
+    logger.info(f"Converting {page_count} PDF page(s) using {num_workers} worker(s)")
     
     # Prepare arguments for each page
     page_args = [(pdf_path, page_num, dpi) for page_num in range(page_count)]
