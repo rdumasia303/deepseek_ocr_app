@@ -36,6 +36,9 @@ def pdf_to_images(pdf_path: str, dpi: int = 144) -> List[Image.Image]:
     zoom = dpi / 72.0
     matrix = fitz.Matrix(zoom, zoom)
     
+    # Allow large images
+    Image.MAX_IMAGE_PIXELS = None
+    
     for page_num in range(pdf_document.page_count):
         page = pdf_document[page_num]
         pixmap = page.get_pixmap(matrix=matrix, alpha=False)
