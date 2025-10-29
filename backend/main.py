@@ -429,7 +429,6 @@ async def ocr_inference(
             # For multi-page PDFs, combine all text with page separators
             combined_text = []
             combined_raw_text = []
-            all_boxes = []
             
             for page_result in all_results:
                 page_num = page_result["page"]
