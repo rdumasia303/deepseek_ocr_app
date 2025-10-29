@@ -6,10 +6,27 @@ import ModeSelector from './components/ModeSelector'
 import ResultPanel from './components/ResultPanel'
 import AdvancedSettings from './components/AdvancedSettings'
 import axios from 'axios'
+import { useTranslation } from 'react-i18next';
+import { Languages } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api'
 
 function App() {
+  const { t, i18n } = useTranslation();
+  const [langDropdownOpen, setLangDropdownOpen] = useState(false);
+
+  const languages = [
+    { code: 'zh', name: '中文', flag: '🇨🇳' },
+    { code: 'en', name: 'English', flag: '🇺🇸' },
+  ];
+
+  const currentLang = languages.find(lang => lang.code === i18n.language) || languages[0];
+
+  const handleLanguageChange = (langCode) => {
+    i18n.changeLanguage(langCode);
+    setLangDropdownOpen(false);
+  };
+
   const [mode, setMode] = useState('plain_ocr')
   const [image, setImage] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
@@ -160,9 +177,44 @@ function App() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold gradient-text">DeepSeek OCR</h1>
-                <p className="text-xs text-gray-400">Next-Gen Vision AI</p>
+                <p className="text-xs text-gray-400">{t('nextGenVisionAI')}</p>
               </div>
             </motion.div>
+
+            {/* 语言切换下拉框 */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="relative"
+            >
+              <button
+                onClick={() => setLangDropdownOpen(!langDropdownOpen)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-all border border-white/10"
+              >
+                <Languages className="w-4 h-4" />
+                <span className="text-sm font-medium">{currentLang.flag} {currentLang.name}</span>
+              </button>
+
+              {langDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-40 glass border border-white/10 rounded-lg overflow-hidden shadow-xl">
+                  {languages.map((lang) => (
+                    <button
+                      key={lang.code}
+                      onClick={() => handleLanguageChange(lang.code)}
+                      className={`w-full flex items-center gap-2 px-4 py-2 text-sm transition-all ${
+                        i18n.language === lang.code
+                          ? 'bg-gradient-to-r from-purple-500/20 to-cyan-500/20 text-white'
+                          : 'text-gray-300 hover:bg-white/5'
+                      }`}
+                    >
+                      <span>{lang.flag}</span>
+                      <span>{lang.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+
           </div>
         </div>
       </header>

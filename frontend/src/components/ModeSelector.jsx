@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { FileText, Eye, Search, Wand2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next';
 
 const modes = [
   { id: 'plain_ocr', name: 'Plain OCR', icon: FileText, color: 'from-blue-500 to-cyan-500', desc: 'Extract raw text', needsInput: false },
@@ -18,10 +19,12 @@ export default function ModeSelector({
 }) {
   const selectedMode = modes.find(m => m.id === mode)
   const needsInput = selectedMode?.needsInput
+  const { t } = useTranslation();
+  
 
   return (
     <div className="glass p-4 rounded-2xl space-y-3">
-      <h3 className="text-sm font-semibold text-gray-200">Mode</h3>
+      <h3 className="text-sm font-semibold text-gray-200">{t('mode')}</h3>
 
       <div className="grid grid-cols-4 gap-2">
         {modes.map((m) => {
