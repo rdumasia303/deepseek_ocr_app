@@ -24,7 +24,7 @@ export default function ModeSelector({
 
   return (
     <div className="glass p-4 rounded-2xl space-y-3">
-      <h3 className="text-sm font-semibold text-gray-200">{t('mode')}</h3>
+      <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">{t('mode')}</h3> {/* Adjusted text color for both modes */}
 
       <div className="grid grid-cols-4 gap-2">
         {modes.map((m) => {
@@ -58,12 +58,12 @@ export default function ModeSelector({
                   w-8 h-8 mx-auto rounded-lg flex items-center justify-center
                   ${isSelected 
                     ? `bg-gradient-to-br ${m.color}` 
-                    : 'bg-white/10'
+                    : 'bg-white/10 dark:bg-white/20'
                   }
                 `}>
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-4 h-4 text-gray-800 dark:text-gray-200" />
                 </div>
-                <p className={`text-xs font-medium ${isSelected ? 'text-white' : 'text-gray-300'}`}>
+                <p className={`text-xs font-medium ${isSelected ? 'text-white' : 'text-gray-800 dark:text-gray-300'}`}>
                   {t(m.id)}
                 </p>
               </div>
@@ -83,7 +83,7 @@ export default function ModeSelector({
             value={findTerm}
             onChange={(e) => onFindTermChange(e.target.value)}
             placeholder={t('enter_find_term')}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-purple-500 transition-colors"
+            className="w-full bg-white/5 dark:bg-white/10 border border-white/10 dark:border-white/20 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-gray-300 focus:outline-none focus:border-purple-500 transition-colors"
           />
         </motion.div>
       )}
@@ -98,7 +98,7 @@ export default function ModeSelector({
             value={prompt}
             onChange={(e) => onPromptChange(e.target.value)}
             placeholder={t('enter_custom_prompt')}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-purple-500 transition-colors resize-none"
+            className="w-full bg-white/5 dark:bg-white/10 border border-white/10 dark:border-white/20 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-gray-300 focus:outline-none focus:border-purple-500 transition-colors resize-none"
             rows={2}
           />
         </motion.div>

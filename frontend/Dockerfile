@@ -1,5 +1,5 @@
 # Frontend Dockerfile - React + Vite
-FROM node:18-alpine as build
+FROM m.daocloud.io/docker.io/node:18-alpine as build
 
 WORKDIR /app
 
@@ -16,7 +16,7 @@ COPY . .
 RUN npm run build
 
 # Production stage with nginx
-FROM nginx:alpine
+FROM nginx:latest
 
 # Copy built files from build stage
 COPY --from=build /app/dist /usr/share/nginx/html

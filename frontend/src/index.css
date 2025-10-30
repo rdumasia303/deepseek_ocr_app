@@ -10,7 +10,7 @@ html body {
 
 html body,
 body {
-  background: linear-gradient(135deg, #e8eef3 0%, #b8c6db 100%) !important;
+  background: linear-gradient(135deg, #e0f2f7 0%, #a1c6e8 100%) !important; /* 更冷的蓝色渐变 */
   color: #2c3e50 !important;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   min-height: 100vh;
@@ -25,7 +25,7 @@ html.dark body,
 
 @layer components {
   .glass {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.3);
@@ -36,7 +36,7 @@ html.dark body,
   }
   
   .glass-hover:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.4);
     border-color: rgba(255, 255, 255, 0.4);
   }
   

@@ -150,7 +150,7 @@ export default function ResultPanel({ result, loading, imagePreview, onCopy, onD
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-purple-400" />
-          <h3 className="font-semibold text-gray-200">{t('results')}</h3>
+          <h3 className="font-semibold text-gray-800 dark:text-gray-200">{t('results')}</h3>
         </div>
         
         {result && (
@@ -194,7 +194,7 @@ export default function ResultPanel({ result, loading, imagePreview, onCopy, onD
               />
               <Loader2 className="w-8 h-8 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-purple-400" />
             </div>
-            <p className="text-sm text-gray-400 animate-pulse">
+            <p className="text-sm text-gray-800 dark:text-gray-400 animate-pulse">
               {t('processing_image')}
             </p>
           </motion.div>
@@ -252,11 +252,11 @@ export default function ResultPanel({ result, loading, imagePreview, onCopy, onD
             {result.raw_text && (
               <details className="glass rounded-xl overflow-hidden">
                 <summary className="px-4 py-3 cursor-pointer flex items-center justify-between hover:bg-white/5 transition-colors">
-                  <span className="text-sm font-medium text-gray-300">🔍 {t('raw_model_response')}</span>
+                  <span className="text-sm font-medium text-gray-800 dark:text-gray-300">🔍 {t('raw_model_response')}</span>
                   <ChevronDown className="w-4 h-4 text-gray-400" />
                 </summary>
                 <div className="px-4 py-3 border-t border-white/10 space-y-2">
-                  <p className="text-xs text-gray-400 mb-2">{t('raw_output_description')}</p>
+                  <p className="text-xs text-gray-800 dark:text-gray-400 mb-2">{t('raw_output_description')}</p>
                   <div className="bg-black/30 rounded-lg p-3 max-h-64 overflow-y-auto">
                     <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap break-words select-all">
                       {result.raw_text}
@@ -344,7 +344,7 @@ export default function ResultPanel({ result, loading, imagePreview, onCopy, onD
               <Sparkles className="w-10 h-10 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-purple-400" />
             </div>
             <div className="text-center">
-              <p className="text-lg font-medium text-gray-300">
+              <p className="text-lg font-medium text-gray-800 dark:text-gray-300">
                 {t('ready_to_process')}
               </p>
               <p className="text-sm text-gray-500 mt-1">
@@ -356,4 +356,4 @@ export default function ResultPanel({ result, loading, imagePreview, onCopy, onD
       </AnimatePresence>
     </div>
   )
-}
+} 

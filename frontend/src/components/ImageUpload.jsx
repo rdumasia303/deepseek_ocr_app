@@ -45,7 +45,7 @@ export default function ImageUpload({ onImageSelect, preview }) {
   return (
     <div className="glass p-6 rounded-2xl space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-gray-200">{t('upload_image')}</h3>
+        <h3 className="font-semibold text-gray-800 dark:text-gray-200">{t('upload_image')}</h3>
         <ImageIcon className="w-5 h-5 text-purple-400" />
       </div>
 
@@ -57,7 +57,7 @@ export default function ImageUpload({ onImageSelect, preview }) {
             transition-all duration-300
             ${isDragActive 
               ? 'border-purple-500 bg-purple-500/10' 
-              : 'border-white/20 bg-white/5 hover:border-white/40 hover:bg-white/10'
+              : 'border-white/20 bg-white/5 dark:bg-white/10 hover:border-white/40 hover:bg-white/10'
             }
           `}
           whileHover={{ scale: 1.02 }}
@@ -76,19 +76,19 @@ export default function ImageUpload({ onImageSelect, preview }) {
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-2xl blur-xl opacity-50" />
                 <div className="relative bg-gradient-to-br from-purple-600 to-cyan-500 p-4 rounded-2xl">
-                  <Upload className="w-8 h-8" />
+                  <Upload className="w-8 h-8 text-white" />
                 </div>
               </div>
             </motion.div>
             
             <div>
-              <p className="text-lg font-medium text-gray-200">
+              <p className="text-lg font-medium text-gray-800 dark:text-gray-200">
                 {isDragActive ? t('drop_active') : t('drag_drop_image')}
               </p>
-              <p className="text-sm text-gray-400 mt-1">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                 {t('click_to_browse')}
               </p>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                 {t('file_limit')}
               </p>
             </div>
@@ -103,7 +103,7 @@ export default function ImageUpload({ onImageSelect, preview }) {
           <img 
             src={preview} 
             alt="Preview" 
-            className="w-full rounded-2xl border border-white/10"
+            className="w-full rounded-2xl border border-white/10 dark:border-white/20"
           />
           <div className="absolute top-3 right-3 flex gap-2">
             <motion.button
@@ -116,8 +116,8 @@ export default function ImageUpload({ onImageSelect, preview }) {
               whileTap={{ scale: 0.95 }}
               title={t('remove_image')}
             >
-              <X className="w-4 h-4" />
-              <span className="text-sm font-medium">{t('remove_image')}</span>
+              <X className="w-4 h-4 text-white" />
+              <span className="text-sm font-medium text-white">{t('remove_image')}</span>
             </motion.button>
           </div>
         </motion.div>

@@ -184,7 +184,7 @@ function App() {
             >
               <div className="flex items-center gap-2">
                 <Settings className="w-4 h-4 text-purple-400" />
-                <span className="text-sm font-medium text-gray-300">{t('advanced_settings')}</span>
+                <span className="text-sm font-medium text-gray-800 dark:text-gray-300">{t('advanced_settings')}</span>
               </div>
               <motion.div
                 animate={{ rotate: showAdvanced ? 180 : 0 }}
@@ -208,7 +208,7 @@ function App() {
               )}
             </AnimatePresence>
 
-            {/* Action Button */}
+          {/* Action Button */}
             <motion.button
               onClick={handleSubmit}
               disabled={!image || loading}
@@ -218,17 +218,20 @@ function App() {
               whileHover={!loading && image ? { scale: 1.02 } : {}}
               whileTap={!loading && image ? { scale: 0.98 } : {}}
             >
+              {/* Button Gradient Background */}
               <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-600 animate-gradient" />
-              <div className="relative bg-dark-100 px-8 py-4 rounded-2xl flex items-center justify-center gap-3">
+              
+              {/* Button Inner Content */}
+              <div className="relative bg-white/10 dark:bg-dark-100 border border-white/20 dark:border-white/10 px-8 py-4 rounded-2xl flex items-center justify-center gap-3">
                 {loading ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span className="font-semibold">{t('processing_magic')}</span>
+                    <Loader2 className="w-5 h-5 animate-spin text-purple-500" />
+                    <span className="font-semibold text-gray-300 dark:text-gray-100">{t('processing_magic')}</span>
                   </>
                 ) : (
                   <>
-                    <Zap className="w-5 h-5" />
-                    <span className="font-semibold">{t('analyze_image')}</span>
+                    <Zap className="w-5 h-5 text-purple-500" />
+                    <span className="font-semibold text-gray-300 dark:text-gray-100">{t('analyze_image')}</span>
                   </>
                 )}
               </div>
@@ -263,9 +266,9 @@ function App() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-20 border-t border-white/10 glass">
+      <footer className="mt-20 border-t border-white/10 glass dark:border-white/20">
         <div className="max-w-7xl mx-auto px-6 py-8 text-center">
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-gray-400 dark:text-gray-200">
             Powered by <span className="gradient-text font-semibold">DeepSeek-OCR</span> • 
             Built with <span className="text-pink-400">♥</span> using React + FastAPI
           </p>
