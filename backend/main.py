@@ -2,8 +2,11 @@ import os
 import re
 import tempfile
 import shutil
+import io
+import logging
 from typing import List, Dict, Any, Optional
 from contextlib import asynccontextmanager
+from concurrent.futures import ThreadPoolExecutor
 
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -259,9 +262,9 @@ async def ocr_inference(
     test_compress: bool = Form(False),
 ):
     """
-    Perform OCR inference on uploaded image
+    Perform OCR inference on uploaded image or PDF
     
-    - **image**: Image file to process
+    - **image**: Image or PDF file to process
     - **mode**: OCR mode (plain_ocr, markdown, tables_csv, etc.)
     - **prompt**: Custom prompt for freeform mode
     - **grounding**: Enable grounding boxes
@@ -286,87 +289,161 @@ async def ocr_inference(
         include_caption=include_caption,
     )
     
-    tmp_img = None
+    tmp_file = None
+    tmp_images = []
     out_dir = None
     try:
-        # Save uploaded file
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+        # Determine file type and save uploaded file
+        filename = image.filename.lower()
+        is_pdf = filename.endswith('.pdf')
+        
+        suffix = ".pdf" if is_pdf else ".png"
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
             content = await image.read()
             tmp.write(content)
-            tmp_img = tmp.name
+            tmp_file = tmp.name
         
-        # Get original dimensions
-        try:
-            with Image.open(tmp_img) as im:
-                orig_w, orig_h = im.size
-        except Exception:
-            orig_w = orig_h = None
+        # Convert PDF to images if necessary
+        if is_pdf:
+            print(f"📄 Processing PDF file: {image.filename}")
+            images_list = pdf_to_images(tmp_file)
+            print(f"📄 Converted PDF to {len(images_list)} page(s)")
+        else:
+            # For regular images, load as single-item list
+            try:
+                img = Image.open(tmp_file)
+                images_list = [img]
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Invalid image file: {str(e)}")
         
+        # Create single output directory for all pages
         out_dir = tempfile.mkdtemp(prefix="dsocr_")
         
-        # Run inference
-        res = model.infer(
-            tokenizer,
-            prompt=prompt_text,
-            image_file=tmp_img,
-            output_path=out_dir,
-            base_size=base_size,
-            image_size=image_size,
-            crop_mode=crop_mode,
-            save_results=False,
-            test_compress=test_compress,
-            eval_mode=True,
-        )
-        
-        # Normalize response
-        if isinstance(res, str):
-            text = res.strip()
-        elif isinstance(res, dict) and "text" in res:
-            text = str(res["text"]).strip()
-        elif isinstance(res, (list, tuple)):
-            text = "\n".join(map(str, res)).strip()
-        else:
-            text = ""
-        
-        # Fallback: check output file
-        if not text:
-            mmd = os.path.join(out_dir, "result.mmd")
-            if os.path.exists(mmd):
-                with open(mmd, "r", encoding="utf-8") as fh:
-                    text = fh.read().strip()
-        if not text:
-            text = "No text returned by model."
-        
-        # Parse grounding boxes with proper coordinate scaling
-        boxes = parse_detections(text, orig_w or 1, orig_h or 1) if ("<|det|>" in text or "<|ref|>" in text) else []
-        
-        # Clean grounding tags from display text, but keep the labels
-        display_text = clean_grounding_text(text) if ("<|ref|>" in text or "<|grounding|>" in text) else text
-        
-        # If display text is empty after cleaning but we have boxes, show the labels
-        if not display_text and boxes:
-            display_text = ", ".join([b["label"] for b in boxes])
-        
-        return JSONResponse({
-            "success": True,
-            "text": display_text,
-            "raw_text": text,  # Include raw model output for debugging
-            "boxes": boxes,
-            "image_dims": {"w": orig_w, "h": orig_h},
-            "metadata": {
-                "mode": mode,
-                "grounding": grounding or (mode in {"find_ref","layout_map","pii_redact"}),
-                "base_size": base_size,
-                "image_size": image_size,
-                "crop_mode": crop_mode
+        # Process each page/image
+        all_results = []
+        for idx, img in enumerate(images_list):
+            # Save image to temp file for model processing
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp_img_file:
+                img.save(tmp_img_file.name, format='PNG')
+                tmp_img_path = tmp_img_file.name
+                tmp_images.append(tmp_img_path)
+            
+            # Get image dimensions
+            orig_w, orig_h = img.size
+            
+            # Run inference
+            res = model.infer(
+                tokenizer,
+                prompt=prompt_text,
+                image_file=tmp_img_path,
+                output_path=out_dir,
+                base_size=base_size,
+                image_size=image_size,
+                crop_mode=crop_mode,
+                save_results=False,
+                test_compress=test_compress,
+                eval_mode=True,
+            )
+            
+            # Normalize response
+            if isinstance(res, str):
+                text = res.strip()
+            elif isinstance(res, dict) and "text" in res:
+                text = str(res["text"]).strip()
+            elif isinstance(res, (list, tuple)):
+                text = "\n".join(map(str, res)).strip()
+            else:
+                text = ""
+            
+            # Fallback: check output file
+            if not text:
+                mmd = os.path.join(out_dir, "result.mmd")
+                if os.path.exists(mmd):
+                    with open(mmd, "r", encoding="utf-8") as fh:
+                        text = fh.read().strip()
+            if not text:
+                text = "No text returned by model."
+            
+            # Parse grounding boxes with proper coordinate scaling
+            boxes = parse_detections(text, orig_w or 1, orig_h or 1) if ("<|det|>" in text or "<|ref|>" in text) else []
+            
+            # Clean grounding tags from display text, but keep the labels
+            display_text = clean_grounding_text(text) if ("<|ref|>" in text or "<|grounding|>" in text) else text
+            
+            # If display text is empty after cleaning but we have boxes, show the labels
+            if not display_text and boxes:
+                display_text = ", ".join([b["label"] for b in boxes])
+            
+            page_result = {
+                "page": idx + 1 if is_pdf else None,
+                "text": display_text,
+                "raw_text": text,
+                "boxes": boxes,
+                "image_dims": {"w": orig_w, "h": orig_h}
             }
-        })
+            all_results.append(page_result)
+        
+        # Combine results for PDF or return single result for image
+        if is_pdf and len(all_results) > 1:
+            # For multi-page PDFs, combine all text with page separators
+            combined_text = []
+            combined_raw_text = []
+            
+            for page_result in all_results:
+                page_num = page_result["page"]
+                combined_text.append(f"\n--- Page {page_num} ---\n{page_result['text']}")
+                combined_raw_text.append(f"\n--- Page {page_num} ---\n{page_result['raw_text']}")
+                # Note: boxes are per-page, so we'd need more complex handling to visualize multi-page
+            
+            return JSONResponse({
+                "success": True,
+                "text": "\n".join(combined_text),
+                "raw_text": "\n".join(combined_raw_text),
+                "boxes": [],  # Boxes are per-page, not combined for multi-page PDFs
+                "image_dims": {"w": all_results[0]["image_dims"]["w"], "h": all_results[0]["image_dims"]["h"]},
+                "is_pdf": True,
+                "pages": all_results,
+                "metadata": {
+                    "mode": mode,
+                    "grounding": grounding or (mode in {"find_ref","layout_map","pii_redact"}),
+                    "base_size": base_size,
+                    "image_size": image_size,
+                    "crop_mode": crop_mode,
+                    "total_pages": len(all_results)
+                }
+            })
+        else:
+            # Single page/image result
+            page_result = all_results[0]
+            return JSONResponse({
+                "success": True,
+                "text": page_result["text"],
+                "raw_text": page_result["raw_text"],
+                "boxes": page_result["boxes"],
+                "image_dims": page_result["image_dims"],
+                "is_pdf": is_pdf,
+                "metadata": {
+                    "mode": mode,
+                    "grounding": grounding or (mode in {"find_ref","layout_map","pii_redact"}),
+                    "base_size": base_size,
+                    "image_size": image_size,
+                    "crop_mode": crop_mode
+                }
+            })
     
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {str(e)}")
     
     finally:
-        if tmp_img:
+        # Cleanup temp files
+        if tmp_file:
+            try:
+                os.remove(tmp_file)
+            except Exception:
+                pass
+        for tmp_img in tmp_images:
             try:
                 os.remove(tmp_img)
             except Exception:

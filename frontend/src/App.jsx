@@ -13,6 +13,7 @@ function App() {
   const [mode, setMode] = useState('plain_ocr')
   const [image, setImage] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
+  const [isPdf, setIsPdf] = useState(false)
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -33,19 +34,29 @@ function App() {
     if (file === null) {
       // Clear everything when removing image
       setImage(null)
-      if (imagePreview) {
+      if (imagePreview && !isPdf) {
         URL.revokeObjectURL(imagePreview)
       }
       setImagePreview(null)
+      setIsPdf(false)
       setError(null)
       setResult(null)
     } else {
+      const isPdfFile = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
       setImage(file)
-      setImagePreview(URL.createObjectURL(file))
+      setIsPdf(isPdfFile)
+      
+      // Only create preview URL for images, not PDFs
+      if (!isPdfFile) {
+        setImagePreview(URL.createObjectURL(file))
+      } else {
+        setImagePreview(file.name) // Just store filename for PDFs
+      }
+      
       setError(null)
       setResult(null)
     }
-  }, [imagePreview])
+  }, [imagePreview, isPdf])
 
   const handleSubmit = async () => {
     if (!image) {
