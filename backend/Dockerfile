@@ -13,6 +13,7 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 
 # Copy backend code
 COPY main.py .
+COPY pdf_utils.py .
 
 EXPOSE 8000
 

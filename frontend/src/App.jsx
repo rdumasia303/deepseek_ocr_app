@@ -13,6 +13,7 @@ function App() {
   const [mode, setMode] = useState('plain_ocr')
   const [image, setImage] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
+  const [isPdf, setIsPdf] = useState(false)
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -33,23 +34,33 @@ function App() {
     if (file === null) {
       // Clear everything when removing image
       setImage(null)
-      if (imagePreview) {
+      if (imagePreview && !isPdf) {
         URL.revokeObjectURL(imagePreview)
       }
       setImagePreview(null)
+      setIsPdf(false)
       setError(null)
       setResult(null)
     } else {
+      const isPdfFile = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
       setImage(file)
-      setImagePreview(URL.createObjectURL(file))
+      setIsPdf(isPdfFile)
+      
+      // Only create preview URL for images, not PDFs
+      if (!isPdfFile) {
+        setImagePreview(URL.createObjectURL(file))
+      } else {
+        setImagePreview(file.name) // Just store filename for PDFs
+      }
+      
       setError(null)
       setResult(null)
     }
-  }, [imagePreview])
+  }, [imagePreview, isPdf])
 
   const handleSubmit = async () => {
     if (!image) {
-      setError('Please upload an image first')
+      setError('Please upload an image or PDF first')
       return
     }
 
@@ -58,7 +69,10 @@ function App() {
 
     try {
       const formData = new FormData()
-      formData.append('image', image)
+      const isPDF = image.name.toLowerCase().endsWith('.pdf')
+      
+      // Use appropriate field name based on file type
+      formData.append(isPDF ? 'file' : 'image', image)
       formData.append('mode', mode)
       formData.append('prompt', prompt)
       // Enable grounding only for find mode
@@ -70,8 +84,15 @@ function App() {
       formData.append('image_size', advancedSettings.image_size)
       formData.append('crop_mode', advancedSettings.crop_mode)
       formData.append('test_compress', advancedSettings.test_compress)
+      
+      // Add DPI for PDF processing
+      if (isPDF) {
+        formData.append('dpi', 144)
+      }
 
-      const response = await axios.post(`${API_BASE}/ocr`, formData, {
+      // Use appropriate endpoint
+      const endpoint = isPDF ? `${API_BASE}/ocr-pdf` : `${API_BASE}/ocr`
+      const response = await axios.post(endpoint, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -191,6 +212,7 @@ function App() {
             <ImageUpload 
               onImageSelect={handleImageSelect}
               preview={imagePreview}
+              file={image}
             />
 
             {/* Advanced Settings Toggle */}
