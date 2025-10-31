@@ -16,99 +16,7 @@ from transformers import AutoModel, AutoTokenizer
 from PIL import Image
 import uvicorn
 from decouple import config as env_config
-import fitz  # PyMuPDF
-
-# Set up logging
-logger = logging.getLogger(__name__)
-
-# Set reasonable limit for large images (500 megapixels)
-# This protects against decompression bombs while allowing large PDFs
-# Set once globally at module level to avoid threading issues
-Image.MAX_IMAGE_PIXELS = 500_000_000
-
-# -----------------------------
-# PDF to Images conversion
-# -----------------------------
-def _convert_pdf_page(args):
-    """
-    Helper function to convert a single PDF page to PIL Image
-    This is used by ThreadPoolExecutor for parallel processing
-    
-    Args:
-        args: tuple of (pdf_path, page_num, dpi)
-    
-    Returns:
-        tuple of (page_num, PIL Image object)
-    """
-    pdf_path, page_num, dpi = args
-    
-    # Open the PDF document for this thread
-    pdf_document = fitz.open(pdf_path)
-    
-    zoom = dpi / 72.0
-    matrix = fitz.Matrix(zoom, zoom)
-    
-    page = pdf_document[page_num]
-    pixmap = page.get_pixmap(matrix=matrix, alpha=False)
-    
-    # Convert pixmap to PIL Image
-    img_data = pixmap.tobytes("png")
-    img = Image.open(io.BytesIO(img_data))
-    
-    # Convert RGBA to RGB if needed
-    if img.mode in ('RGBA', 'LA'):
-        background = Image.new('RGB', img.size, (255, 255, 255))
-        background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
-        img = background
-    
-    pdf_document.close()
-    return (page_num, img)
-
-
-def pdf_to_images(pdf_path: str, dpi: int = 144) -> List[Image.Image]:
-    """
-    Convert PDF pages to PIL Images using parallel processing
-    
-    Args:
-        pdf_path: Path to the PDF file
-        dpi: DPI for rendering (default: 144)
-    
-    Returns:
-        List of PIL Image objects, one per page (in correct order)
-    """
-    # Get max workers from environment, default to 4
-    max_workers = env_config("MAX_PDF_WORKERS", default=4, cast=int)
-    
-    # Open PDF to get page count
-    pdf_document = fitz.open(pdf_path)
-    page_count = pdf_document.page_count
-    pdf_document.close()
-    
-    # If only 1 page, use the helper function directly
-    if page_count == 1:
-        _, img = _convert_pdf_page((pdf_path, 0, dpi))
-        return [img]
-    
-    # Use ThreadPoolExecutor for parallel page conversion
-    # Limit workers to min(max_workers, page_count) for efficiency
-    num_workers = min(max_workers, page_count)
-    
-    logger.info(f"Converting {page_count} PDF page(s) using {num_workers} worker(s)")
-    
-    # Prepare arguments for each page
-    page_args = [(pdf_path, page_num, dpi) for page_num in range(page_count)]
-    
-    # Process pages in parallel
-    with ThreadPoolExecutor(max_workers=num_workers) as executor:
-        results = list(executor.map(_convert_pdf_page, page_args))
-    
-    # Sort by page number to maintain correct order
-    results.sort(key=lambda x: x[0])
-    
-    # Extract images in correct order
-    images = [img for _, img in results]
-    
-    return images
+from pdf_utils import pdf_to_images
 
 # -----------------------------
 # Lifespan context for model loading
@@ -542,6 +450,172 @@ async def ocr_inference(
                 pass
         if out_dir:
             shutil.rmtree(out_dir, ignore_errors=True)
+
+@app.post("/api/ocr-pdf")
+async def ocr_pdf_inference(
+    file: UploadFile = File(...),
+    mode: str = Form("plain_ocr"),
+    prompt: str = Form(""),
+    grounding: bool = Form(False),
+    include_caption: bool = Form(False),
+    find_term: Optional[str] = Form(None),
+    schema: Optional[str] = Form(None),
+    base_size: int = Form(1024),
+    image_size: int = Form(640),
+    crop_mode: bool = Form(True),
+    test_compress: bool = Form(False),
+    dpi: int = Form(144),
+):
+    """
+    Perform OCR inference on uploaded PDF file (processes all pages)
+    
+    - **file**: PDF file to process
+    - **mode**: OCR mode (plain_ocr, markdown, tables_csv, etc.)
+    - **prompt**: Custom prompt for freeform mode
+    - **grounding**: Enable grounding boxes
+    - **include_caption**: Add image description
+    - **find_term**: Term to find (for find_ref mode)
+    - **schema**: JSON schema (for kv_json mode)
+    - **base_size**: Base processing size
+    - **image_size**: Image size parameter
+    - **crop_mode**: Enable crop mode
+    - **test_compress**: Test compression
+    - **dpi**: PDF rendering resolution (default: 144)
+    """
+    if model is None or tokenizer is None:
+        raise HTTPException(status_code=503, detail="Model not loaded yet")
+    
+    # Check if it's a PDF file
+    if not file.filename.lower().endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported for this endpoint")
+    
+    try:
+        # Read PDF content
+        pdf_content = await file.read()
+        
+        # Convert PDF to images
+        try:
+            images = pdf_to_images(pdf_content, dpi=dpi)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Failed to process PDF: {str(e)}")
+        
+        if not images:
+            raise HTTPException(status_code=400, detail="PDF contains no pages")
+        
+        # Build prompt
+        prompt_text = build_prompt(
+            mode=mode,
+            user_prompt=prompt,
+            grounding=grounding,
+            find_term=find_term,
+            schema=schema,
+            include_caption=include_caption,
+        )
+        
+        # Process each page
+        pages_results = []
+        for page_num, img in enumerate(images, 1):
+            tmp_img = None
+            out_dir = None
+            try:
+                # Save page image temporarily
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+                    img.save(tmp, format="PNG")
+                    tmp_img = tmp.name
+                
+                # Get page dimensions
+                orig_w, orig_h = img.size
+                
+                out_dir = tempfile.mkdtemp(prefix="dsocr_pdf_")
+                
+                # Run inference
+                res = model.infer(
+                    tokenizer,
+                    prompt=prompt_text,
+                    image_file=tmp_img,
+                    output_path=out_dir,
+                    base_size=base_size,
+                    image_size=image_size,
+                    crop_mode=crop_mode,
+                    save_results=False,
+                    test_compress=test_compress,
+                    eval_mode=True,
+                )
+                
+                # Normalize response
+                if isinstance(res, str):
+                    text = res.strip()
+                elif isinstance(res, dict) and "text" in res:
+                    text = str(res["text"]).strip()
+                elif isinstance(res, (list, tuple)):
+                    text = "\n".join(map(str, res)).strip()
+                else:
+                    text = ""
+                
+                # Fallback: check output file
+                if not text:
+                    mmd = os.path.join(out_dir, "result.mmd")
+                    if os.path.exists(mmd):
+                        with open(mmd, "r", encoding="utf-8") as fh:
+                            text = fh.read().strip()
+                if not text:
+                    text = f"No text returned by model for page {page_num}."
+                
+                # Parse grounding boxes with proper coordinate scaling
+                boxes = parse_detections(text, orig_w, orig_h) if ("<|det|>" in text or "<|ref|>" in text) else []
+                
+                # Clean grounding tags from display text
+                display_text = clean_grounding_text(text) if ("<|ref|>" in text or "<|grounding|>" in text) else text
+                
+                # If display text is empty after cleaning but we have boxes, show the labels
+                if not display_text and boxes:
+                    display_text = ", ".join([b["label"] for b in boxes])
+                
+                pages_results.append({
+                    "page": page_num,
+                    "text": display_text,
+                    "raw_text": text,
+                    "boxes": boxes,
+                    "image_dims": {"w": orig_w, "h": orig_h}
+                })
+                
+            finally:
+                if tmp_img:
+                    try:
+                        os.remove(tmp_img)
+                    except Exception:
+                        pass
+                if out_dir:
+                    shutil.rmtree(out_dir, ignore_errors=True)
+        
+        # Combine results from all pages
+        combined_text = "\n\n--- Page Break ---\n\n".join([p["text"] for p in pages_results])
+        all_boxes = []
+        for p in pages_results:
+            for box in p["boxes"]:
+                box_with_page = box.copy()
+                box_with_page["page"] = p["page"]
+                all_boxes.append(box_with_page)
+        
+        return JSONResponse({
+            "success": True,
+            "text": combined_text,
+            "pages": pages_results,
+            "total_pages": len(images),
+            "metadata": {
+                "mode": mode,
+                "grounding": grounding or (mode in {"find_ref","layout_map","pii_redact"}),
+                "base_size": base_size,
+                "image_size": image_size,
+                "crop_mode": crop_mode,
+                "dpi": dpi
+            }
+        })
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {str(e)}")
 
 if __name__ == "__main__":
     host = env_config("API_HOST", default="0.0.0.0")

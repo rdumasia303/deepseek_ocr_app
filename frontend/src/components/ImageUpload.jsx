@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { useDropzone } from 'react-dropzone'
 import { Upload, Image as ImageIcon, X, FileText } from 'lucide-react'
 
-export default function ImageUpload({ onImageSelect, preview, isPdf }) {
+export default function ImageUpload({ onImageSelect, preview, file }) {
   const onDrop = useCallback((acceptedFiles) => {
     if (acceptedFiles?.[0]) {
       onImageSelect(acceptedFiles[0])
@@ -23,7 +23,7 @@ export default function ImageUpload({ onImageSelect, preview, isPdf }) {
     <div className="glass p-6 rounded-2xl space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-gray-200">Upload Image or PDF</h3>
-        {isPdf ? <FileText className="w-5 h-5 text-purple-400" /> : <ImageIcon className="w-5 h-5 text-purple-400" />}
+        <ImageIcon className="w-5 h-5 text-purple-400" />
       </div>
 
       {!preview ? (
@@ -74,11 +74,11 @@ export default function ImageUpload({ onImageSelect, preview, isPdf }) {
           animate={{ opacity: 1, scale: 1 }}
           className="relative group rounded-2xl overflow-hidden"
         >
-          {isPdf ? (
-            <div className="w-full p-8 bg-white/5 rounded-2xl border border-white/10 flex flex-col items-center justify-center">
-              <FileText className="w-16 h-16 text-purple-400 mb-4" />
-              <p className="text-gray-200 font-medium">PDF Document Ready</p>
-              <p className="text-gray-400 text-sm mt-2">Click process to extract text</p>
+          {file && file.name.toLowerCase().endsWith('.pdf') ? (
+            <div className="flex flex-col items-center justify-center p-12 bg-white/5 border border-white/10 rounded-2xl">
+              <FileText className="w-20 h-20 text-purple-400 mb-4" />
+              <p className="text-lg font-medium text-gray-200">{file.name}</p>
+              <p className="text-sm text-gray-400 mt-1">PDF Document</p>
             </div>
           ) : (
             <img 

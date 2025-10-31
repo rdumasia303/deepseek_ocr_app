@@ -69,7 +69,10 @@ function App() {
 
     try {
       const formData = new FormData()
-      formData.append('image', image)
+      const isPDF = image.name.toLowerCase().endsWith('.pdf')
+      
+      // Use appropriate field name based on file type
+      formData.append(isPDF ? 'file' : 'image', image)
       formData.append('mode', mode)
       formData.append('prompt', prompt)
       // Enable grounding only for find mode
@@ -81,8 +84,15 @@ function App() {
       formData.append('image_size', advancedSettings.image_size)
       formData.append('crop_mode', advancedSettings.crop_mode)
       formData.append('test_compress', advancedSettings.test_compress)
+      
+      // Add DPI for PDF processing
+      if (isPDF) {
+        formData.append('dpi', 144)
+      }
 
-      const response = await axios.post(`${API_BASE}/ocr`, formData, {
+      // Use appropriate endpoint
+      const endpoint = isPDF ? `${API_BASE}/ocr-pdf` : `${API_BASE}/ocr`
+      const response = await axios.post(endpoint, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -202,7 +212,7 @@ function App() {
             <ImageUpload 
               onImageSelect={handleImageSelect}
               preview={imagePreview}
-              isPdf={isPdf}
+              file={image}
             />
 
             {/* Advanced Settings Toggle */}
