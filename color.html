@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>科技感配色主题</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            font-size: 2.5em;
+            margin-bottom: 50px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .section {
+            margin-bottom: 60px;
+        }
+
+        .section-title {
+            color: white;
+            font-size: 1.8em;
+            margin-bottom: 30px;
+            padding-left: 20px;
+            border-left: 4px solid white;
+        }
+
+        .themes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+        }
+
+        .theme-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+        }
+
+        .theme-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .theme-preview {
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+            padding: 30px;
+            position: relative;
+        }
+
+        .theme-name {
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            z-index: 1;
+        }
+
+        .theme-description {
+            font-size: 0.9em;
+            opacity: 0.8;
+            z-index: 1;
+        }
+
+        .theme-accent {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .color-palette {
+            padding: 20px;
+            background: #f8f9fa;
+            display: flex;
+            gap: 10px;
+        }
+
+        .color-item {
+            flex: 1;
+            text-align: center;
+        }
+
+        .color-box {
+            height: 50px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .color-label {
+            font-size: 0.75em;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .color-value {
+            font-size: 0.7em;
+            color: #999;
+            font-family: monospace;
+            margin-top: 2px;
+        }
+
+        .selected {
+            position: relative;
+        }
+
+        .selected::after {
+            content: '✓ 已选择';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255,255,255,0.95);
+            color: #10b981;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 2;
+        }
+
+        /* Light Themes */
+        .light-1 { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); color: #2c3e50; }
+        .light-2 { background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%); color: #1a202c; }
+        .light-3 { background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); color: #5a3e36; }
+        .light-4 { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); color: #2d3748; }
+        .light-5 { background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%); color: #1a202c; }
+        .light-6 { background: linear-gradient(135deg, #d299c2 0%, #fef9d7 100%); color: #4a5568; }
+
+        /* Dark Themes */
+        .dark-1 { background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%); color: #e2e8f0; }
+        .dark-2 { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); color: #edf2f7; }
+        .dark-3 { background: linear-gradient(135deg, #141e30 0%, #243b55 100%); color: #f7fafc; }
+        .dark-4 { background: linear-gradient(135deg, #2d3561 0%, #c05c7e 100%); color: #ffffff; }
+        .dark-5 { background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%); color: #e2e8f0; }
+        .dark-6 { background: linear-gradient(135deg, #000000 0%, #434343 100%); color: #f5f5f5; }
+
+        @media (max-width: 768px) {
+            .themes-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .section-title {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 科技感配色主题</h1>
+        
+        <div class="section">
+            <h2 class="section-title">☀️ 白天模式</h2>
+            <div class="themes-grid" id="lightThemes">
+                <!-- Light Theme 1 -->
+                <div class="theme-card" onclick="selectTheme(this, 'light-1')">
+                    <div class="theme-preview light-1">
+                        <div class="theme-name">清爽蓝灰</div>
+                        <div class="theme-description">简洁专业，适合企业应用</div>
+                        <div class="theme-accent" style="background: #3498db;"></div>
+                    </div>
+                    <div class="color-palette">
+                        <div class="color-item">
+                            <div class="color-box" style="background: #f5f7fa;"></div>
+                            <div class="color-label">背景</div>
+                            <div class="color-value">#f5f7fa</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-box" style="background: #2c3e50;"></div>
+                            <div class="color-label">文字</div>
+                            <div class="color-value">#2c3e50</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-box" style="background: #3498db;"></div>
+                            <div class="color-label">强调</div>
+                            <div class="color-value">#3498db</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Light Theme 2 -->
+                <div class="theme-card" onclick="selectTheme(this, 'light-2')">
+                    <div class="theme-preview light-2">
+                        <div class="theme-name">梦幻紫蓝</div>
+                        <div class="theme-description">活力创意，适合设计工具</div>
+                        <div class="theme-accent" style="background: #8b5cf6;"></div>
+                    </div>
+                    <div class="color-palette">
+                        <div class="color-item">
+                            <div class="color-box" style="background: #e0c3fc;"></div>
+                            <div class="color-label">背景</div>
+                            <div class="color-value">#e0c3fc</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-box" style="background: #1a202c;"></div>
+                            <div class="color-label">文字</div>
+                            <div class="color-value">#1a202c</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-box" style="background: #8b5cf6;"></div>
+                            <div class="color-label">强调</div>
+                            <div class="color-value">#8b5cf6</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Light Theme 3 -->
+                <div class="theme-card" onclick="selectTheme(this, 'light-3')">
+                    <div class="theme-preview light-3">
+                        <div class="theme-name">温暖橙粉</div>
+                        <div class="theme-description">友好温馨，适合社交应用</div>
+                        <div class="theme-accent" style="background: #f97316;"></div>
+                    </div>
+                    <div class="color-palette">
+                        <div class="color-item">
+                            <div class="color-box" style="background: #ffecd2;"></div>
+                            <div class="color-label">背景</div>
+                            <div class="color-value">#ffecd2</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-box" style="background: #5a3e36;"></div>
+                            <div class="color-label">文字</div>
+                            <div class="color-value">#5a3e36</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-box" style="background: #f97316;"></div>
+                            <div class="color-label">强调</div>
+                            <div class="color-value">#f97316</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Light Theme 4 -->
+                <div class="theme-card" onclick="selectTheme(this, 'light-4')">
+                    <div class="theme-preview light-4">
+                        <div class="theme-name">青色粉调</div>
+                        <div class="theme-description">清新柔和，适合内容平台</div>
+                        <div class="theme-accent" style="background: #06b6d4;"></div>
+                    </div>
+                    <div class="color-palette">
+                        <div class="color-item">
+                            <div class="color-box" style="background: #a8edea;"></div>
+                            <div class="color-label">背景</div>
+                            <div class="color-value">#a8edea</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-box" style="background: #2d3748;"></div>
+                            <div class="color-label">文字</div>
+                            <div class="color-value">#2d3748</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-box" style="background: #06b6d4;"></div>
+                            <div class="color-label">强调</div>
+                            <div class="color-value">#06b6d4</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Light Theme 5 -->
+                <div class="theme-card" onclick="selectTheme(this, 'light-5')">
+                    <div class="theme-preview light-5">
+                        <div class="theme-name">极简白灰</div>
+                        <div class="theme-description">现代简约，适合生产力工具</div>
+                        <div class="theme-accent" style="background: #10b981;"></div>
+                    </div>
+                    <div class="color-palette">
+                        <div class="color-item">
+                            <div class="color-box" style="background: #fdfbfb;"></div>
+                            <div class="color-label">背景</div>
+                            <div class="color-value">#fdfbfb</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-box" style="background: #1a202c;"></div>
+                            <div class="color-label">文字</div>
+                            <div class="color-value">#1a202c</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-box" style="background: #10b981;"></div>
+                            <div class="color-label">强调</div>
+                            <div class="color-value">#10b981</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Light Theme 6 -->
+                <div class="theme-card" onclick="selectTheme(this, 'light-6')">
+                    <div class="theme-preview light-6">
+                        <div class="theme-name">薰衣草黄</div>
+                        <div class="theme-description">优雅舒适，适合阅读应用</div>
+                        <div class="theme-accent" style="background: #a855f7;"></div>
+                    </div>
+                    <div class="color-palette">
+                        <div class="color-item">
+                            <div class="color-box" style="background: #d299c2;"></div>
+                            <div class="color-label">背景</div>
+                            <div class="color-value">#d299c2</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-box" style="background: #4a5568;"></div>
+                            <div class="color-label">文字</div>
+                            <div class="color-value">#4a5568</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-box" style="background: #a855f7;"></div>
+                            <div class="color-label">强调</div>
+                            <div class="color-value">#a855f7</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">🌙 黑暗模式</h2>
+            <div class="themes-grid" id="darkThemes">
+                <!-- Dark Theme 1 -->
+                <div class="theme-card" onclick="selectTheme(this, 'dark-1')">
+                    <div class="theme-preview dark-1">
+                        <div class="theme-name">深海蓝绿</div>
+                        <div class="theme-description">沉稳科技，适合开发工具</div>
+                        <div class="theme-accent" style="background: #2dd4bf;"></div>
+                    </div>
+                    <div class="color-palette">
+                        <div class="color-item">
+                            <div class="color-box" style="background: #0f2027;"></div>
+                            <div class="color-label">背景</div>
+                            <div class="color-value">#0f2027</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-box" style="background: #e2e8f0;"></div>
+                            <div class="color-label">文字</div>
+                            <div class="color-value">#e2e8f0</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-box" style="background: #2dd4bf;"></div>
+                            <div class="color-label">强调</div>
+                            <div class="color-value">#2dd4bf</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dark Theme 2 -->
+                <div class="theme-card" onclick="selectTheme(this, 'dark-2')">
+                    <div class="theme-preview dark-2">
+                        <div class="theme-name">午夜蓝</div>
+                        <div class="theme-description">经典专业，适合代码编辑器</div>
+                        <div class="theme-accent" style="background: #0ea5e9;"></div>
+                    </div>
+                    <div class="color-palette">
+                        <div class="color-item">
+                            <div class="color-box" style="background: #1a1a2e;"></div>
+                            <div class="color-label">背景</div>
+                            <div class="color-value">#1a1a2e</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-box" style="background: #edf2f7;"></div>
+                            <div class="color-label">文字</div>
+                            <div class="color-value">#edf2f7</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-box" style="background: #0ea5e9;"></div>
+                            <div class="color-label">强调</div>
+                            <div class="color-value">#0ea5e9</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dark Theme 3 -->
+                <div class="theme-card" onclick="selectTheme(this, 'dark-3')">
+                    <div class="theme-preview dark-3">
+                        <div class="theme-name">钴蓝深空</div>
+                        <div class="theme-description">冷静理性，适合数据分析</div>
+                        <div class="theme-accent" style="background: #3b82f6;"></div>
+                    </div>
+                    <div class="color-palette">
+                        <div class="color-item">
+                            <div class="color-box" style="background: #141e30;"></div>
+                            <div class="color-label">背景</div>
+                            <div class="color-value">#141e30</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-box" style="background: #f7fafc;"></div>
+                            <div class="color-label">文字</div>
+                            <div class="color-value">#f7fafc</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-box" style="background: #3b82f6;"></div>
+                            <div class="color-label">强调</div>
+                            <div class="color-value">#3b82f6</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dark Theme 4 -->
+                <div class="theme-card" onclick="selectTheme(this, 'dark-4')">
+                    <div class="theme-preview dark-4">
+                        <div class="theme-name">紫粉夜曲</div>
+                        <div class="theme-description">时尚前卫，适合创意应用</div>
+                        <div class="theme-accent" style="background: #ec4899;"></div>
+                    </div>
+                    <div class="color-palette">
+                        <div class="color-item">
+                            <div class="color-box" style="background: #2d3561;"></div>
+                            <div class="color-label">背景</div>
+                            <div class="color-value">#2d3561</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-box" style="background: #ffffff;"></div>
+                            <div class="color-label">文字</div>
+                            <div class="color-value">#ffffff</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-box" style="background: #ec4899;"></div>
+                            <div class="color-label">强调</div>
+                            <div class="color-value">#ec4899</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dark Theme 5 -->
+                <div class="theme-card" onclick="selectTheme(this, 'dark-5')">
+                    <div class="theme-preview dark-5">
+                        <div class="theme-name">星际紫</div>
+                        <div class="theme-description">神秘优雅，适合游戏平台</div>
+                        <div class="theme-accent" style="background: #8b5cf6;"></div>
+                    </div>
+                    <div class="color-palette">
+                        <div class="color-item">
+                            <div class="color-box" style="background: #0f0c29;"></div>
+                            <div class="color-label">背景</div>
+                            <div class="color-value">#0f0c29</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-box" style="background: #e2e8f0;"></div>
+                            <div class="color-label">文字</div>
+                            <div class="color-value">#e2e8f0</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-box" style="background: #8b5cf6;"></div>
+                            <div class="color-label">强调</div>
+                            <div class="color-value">#8b5cf6</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dark Theme 6 -->
+                <div class="theme-card" onclick="selectTheme(this, 'dark-6')">
+                    <div class="theme-preview dark-6">
+                        <div class="theme-name">纯黑灰</div>
+                        <div class="theme-description">极简高端，适合移动应用</div>
+                        <div class="theme-accent" style="background: #22c55e;"></div>
+                    </div>
+                    <div class="color-palette">
+                        <div class="color-item">
+                            <div class="color-box" style="background: #000000;"></div>
+                            <div class="color-label">背景</div>
+                            <div class="color-value">#000000</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-box" style="background: #f5f5f5;"></div>
+                            <div class="color-label">文字</div>
+                            <div class="color-value">#f5f5f5</div>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-box" style="background: #22c55e;"></div>
+                            <div class="color-label">强调</div>
+                            <div class="color-value">#22c55e</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedTheme = null;
+
+        function selectTheme(element, themeId) {
+            // Remove previous selection
+            if (selectedTheme) {
+                selectedTheme.classList.remove('selected');
+            }
+            
+            // Add selection to current theme
+            element.classList.add('selected');
+            selectedTheme = element;
+            
+            console.log('Selected theme:', themeId);
+        }
+    </script>
+</body>
+</html>
