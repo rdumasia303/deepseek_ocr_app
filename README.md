@@ -40,7 +40,7 @@ Export your OCR results in the format you need:
 
 ---
 
-> **Latest Updates (v2.2.0)** - December 2024
+> **Latest Updates (v2.2.0)** - November 2025
 > - 🎉 **NEW: PDF Processing** - Upload PDFs and extract text from all pages
 > - 🎉 **NEW: Multi-Format Export** - Convert to Markdown, HTML, DOCX, or JSON
 > - 🎉 **NEW: Automatic Image Extraction** - Extract and preserve images from PDFs
