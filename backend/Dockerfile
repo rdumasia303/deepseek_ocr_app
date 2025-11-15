@@ -12,7 +12,7 @@ COPY requirements.txt .
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
 # Copy backend code
-COPY main.py .
+COPY *.py .
 
 EXPOSE 8000
 
