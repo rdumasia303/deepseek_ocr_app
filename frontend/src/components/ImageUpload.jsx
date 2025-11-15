@@ -1,7 +1,7 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useDropzone } from 'react-dropzone'
-import { Upload, Image as ImageIcon, X, FileText } from 'lucide-react'
+import { Upload, Image as ImageIcon, X, FileText, Clipboard } from 'lucide-react'
 
 export default function ImageUpload({ onImageSelect, preview, fileType = 'image' }) {
   const onDrop = useCallback((acceptedFiles) => {
@@ -11,6 +11,38 @@ export default function ImageUpload({ onImageSelect, preview, fileType = 'image'
   }, [onImageSelect])
 
   const isPDF = fileType === 'pdf'
+
+  // Handle clipboard paste
+  useEffect(() => {
+    // Only enable paste for images, not PDFs
+    if (isPDF) return
+
+    const handlePaste = async (e) => {
+      const items = e.clipboardData?.items
+      if (!items) return
+
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i]
+        
+        if (item.type.indexOf('image') !== -1) {
+          e.preventDefault()
+          const blob = item.getAsFile()
+          
+          if (blob) {
+            // Create a File object with a proper name
+            const file = new File([blob], `pasted-image-${Date.now()}.png`, {
+              type: blob.type,
+            })
+            onImageSelect(file)
+          }
+          break
+        }
+      }
+    }
+
+    document.addEventListener('paste', handlePaste)
+    return () => document.removeEventListener('paste', handlePaste)
+  }, [onImageSelect, isPDF])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -82,6 +114,12 @@ export default function ImageUpload({ onImageSelect, preview, fileType = 'image'
                   : 'or click to browse • PNG, JPG, WEBP up to 10MB'
                 }
               </p>
+              {!isPDF && (
+                <p className="text-xs text-purple-400 mt-2 flex items-center justify-center gap-1.5">
+                  <Clipboard className="w-3.5 h-3.5" />
+                  <span>Press Ctrl+V to paste from clipboard</span>
+                </p>
+              )}
             </div>
           </div>
         </motion.div>

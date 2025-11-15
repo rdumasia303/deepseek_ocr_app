@@ -346,10 +346,13 @@ function App() {
 
       {/* Footer */}
       <footer className="mt-20 border-t border-white/10 glass">
-        <div className="max-w-7xl mx-auto px-6 py-8 text-center">
+        <div className="max-w-7xl mx-auto px-6 py-8 text-center space-y-2">
           <p className="text-sm text-gray-400">
             Powered by <span className="gradient-text font-semibold">DeepSeek-OCR</span> • 
             Built with <span className="text-pink-400">♥</span> using React + FastAPI
+          </p>
+          <p className="text-xs text-gray-500">
+            Thanks to <a href="https://github.com/p-xiexin" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:text-purple-300 transition-colors">@p-xiexin</a> for the clipboard paste idea!
           </p>
         </div>
       </footer>
