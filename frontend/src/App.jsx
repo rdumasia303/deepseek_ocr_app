@@ -1,16 +1,18 @@
 import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, Zap, Loader2, Settings } from 'lucide-react'
+import { Sparkles, Zap, Loader2, Settings, Image as ImageIcon, FileText } from 'lucide-react'
 import ImageUpload from './components/ImageUpload'
 import ModeSelector from './components/ModeSelector'
 import ResultPanel from './components/ResultPanel'
 import AdvancedSettings from './components/AdvancedSettings'
+import PDFProcessor from './components/PDFProcessor'
 import axios from 'axios'
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api'
 
 function App() {
   const [mode, setMode] = useState('plain_ocr')
+  const [fileType, setFileType] = useState('image') // 'image' or 'pdf'
   const [image, setImage] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [result, setResult] = useState(null)
@@ -29,11 +31,23 @@ function App() {
     test_compress: false
   })
 
+  const handleFileTypeChange = useCallback((newType) => {
+    // Clear current file when switching types
+    setImage(null)
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview)
+    }
+    setImagePreview(null)
+    setError(null)
+    setResult(null)
+    setFileType(newType)
+  }, [imagePreview])
+
   const handleImageSelect = useCallback((file) => {
     if (file === null) {
       // Clear everything when removing image
       setImage(null)
-      if (imagePreview) {
+      if (imagePreview && fileType === 'image') {
         URL.revokeObjectURL(imagePreview)
       }
       setImagePreview(null)
@@ -41,11 +55,16 @@ function App() {
       setResult(null)
     } else {
       setImage(file)
-      setImagePreview(URL.createObjectURL(file))
+      // Only create preview URL for images, not PDFs
+      if (fileType === 'image') {
+        setImagePreview(URL.createObjectURL(file))
+      } else {
+        setImagePreview(file) // Just store the file for PDFs
+      }
       setError(null)
       setResult(null)
     }
-  }, [imagePreview])
+  }, [imagePreview, fileType])
 
   const handleSubmit = async () => {
     if (!image) {
@@ -177,9 +196,41 @@ function App() {
             transition={{ delay: 0.1 }}
             className="space-y-6"
           >
+            {/* File Type Toggle */}
+            <div className="glass p-4 rounded-2xl">
+              <div className="grid grid-cols-2 gap-2">
+                <motion.button
+                  onClick={() => handleFileTypeChange('image')}
+                  className={`p-3 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                    fileType === 'image'
+                      ? 'bg-gradient-to-r from-purple-600 to-cyan-600 text-white'
+                      : 'glass text-gray-400 hover:bg-white/5'
+                  }`}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <ImageIcon className="w-4 h-4" />
+                  Image OCR
+                </motion.button>
+                <motion.button
+                  onClick={() => handleFileTypeChange('pdf')}
+                  className={`p-3 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                    fileType === 'pdf'
+                      ? 'bg-gradient-to-r from-purple-600 to-cyan-600 text-white'
+                      : 'glass text-gray-400 hover:bg-white/5'
+                  }`}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <FileText className="w-4 h-4" />
+                  PDF Processing
+                </motion.button>
+              </div>
+            </div>
+
             {/* Mode Selector with integrated inputs */}
-            <ModeSelector 
-              mode={mode} 
+            <ModeSelector
+              mode={mode}
               onModeChange={setMode}
               prompt={prompt}
               onPromptChange={setPrompt}
@@ -187,10 +238,11 @@ function App() {
               onFindTermChange={setFindTerm}
             />
 
-            {/* Image Upload */}
-            <ImageUpload 
+            {/* Image/PDF Upload */}
+            <ImageUpload
               onImageSelect={handleImageSelect}
               preview={imagePreview}
+              fileType={fileType}
             />
 
             {/* Advanced Settings Toggle */}
@@ -226,40 +278,52 @@ function App() {
               )}
             </AnimatePresence>
 
-            {/* Action Button */}
-            <motion.button
-              onClick={handleSubmit}
-              disabled={!image || loading}
-              className={`w-full relative overflow-hidden rounded-2xl p-[2px] ${
-                !image || loading ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-              whileHover={!loading && image ? { scale: 1.02 } : {}}
-              whileTap={!loading && image ? { scale: 0.98 } : {}}
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-600 animate-gradient" />
-              <div className="relative bg-dark-100 px-8 py-4 rounded-2xl flex items-center justify-center gap-3">
-                {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span className="font-semibold">Processing Magic...</span>
-                  </>
-                ) : (
-                  <>
-                    <Zap className="w-5 h-5" />
-                    <span className="font-semibold">Analyze Image</span>
-                  </>
-                )}
-              </div>
-            </motion.button>
+            {/* Action Button / PDF Processor */}
+            {fileType === 'pdf' ? (
+              <PDFProcessor
+                pdfFile={image}
+                mode={mode}
+                prompt={prompt}
+                advancedSettings={advancedSettings}
+                includeCaption={includeCaption}
+              />
+            ) : (
+              <>
+                <motion.button
+                  onClick={handleSubmit}
+                  disabled={!image || loading}
+                  className={`w-full relative overflow-hidden rounded-2xl p-[2px] ${
+                    !image || loading ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                  whileHover={!loading && image ? { scale: 1.02 } : {}}
+                  whileTap={!loading && image ? { scale: 0.98 } : {}}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-cyan-600 animate-gradient" />
+                  <div className="relative bg-dark-100 px-8 py-4 rounded-2xl flex items-center justify-center gap-3">
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span className="font-semibold">Processing Magic...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-5 h-5" />
+                        <span className="font-semibold">Analyze Image</span>
+                      </>
+                    )}
+                  </div>
+                </motion.button>
 
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="glass p-4 rounded-2xl border-red-500/50 bg-red-500/10"
-              >
-                <p className="text-sm text-red-400">{error}</p>
-              </motion.div>
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="glass p-4 rounded-2xl border-red-500/50 bg-red-500/10"
+                  >
+                    <p className="text-sm text-red-400">{error}</p>
+                  </motion.div>
+                )}
+              </>
             )}
           </motion.div>
 

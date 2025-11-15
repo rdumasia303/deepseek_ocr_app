@@ -4,7 +4,15 @@ Modern OCR web application powered by DeepSeek-OCR with a stunning React fronten
 
 ![DeepSeek OCR in Action](assets/multi-bird.png)
 
-> **Recent Updates (v2.1.1)**
+> **Recent Updates (v2.2.0)**
+> - 🎉 **NEW: PDF Processing** - Upload PDFs and extract text from all pages
+> - 🎉 **NEW: Multi-Format Export** - Convert to Markdown, HTML, DOCX, or JSON
+> - 🎉 **NEW: Automatic Image Extraction** - Extract and preserve images from PDFs
+> - 🎉 **NEW: Progress Tracking** - Real-time progress for multi-page documents
+> - ✅ Dual mode: Image OCR + PDF Processing with format conversion
+> - ✅ Enhanced document processing with formula and formatting preservation
+>
+> **Previous Updates (v2.1.1)**
 > - ✅ Fixed image removal button - now properly clears and allows re-upload
 > - ✅ Fixed multiple bounding boxes parsing - handles `[[x1,y1,x2,y2], [x1,y1,x2,y2]]` format
 > - ✅ Simplified to 4 core working modes for better stability
@@ -39,22 +47,32 @@ Modern OCR web application powered by DeepSeek-OCR with a stunning React fronten
 
 ## Features
 
-### 4 Core OCR Modes
+### Dual Processing Modes
+#### 📸 **Image OCR** (4 Core Modes)
 - **Plain OCR** - Raw text extraction from any image
 - **Describe** - Generate intelligent image descriptions
 - **Find** - Locate specific terms with visual bounding boxes
 - **Freeform** - Custom prompts for specialized tasks
 
+#### 📄 **PDF Processing** (NEW!)
+- **Multi-Page Processing** - Process entire PDF documents page by page
+- **Format Conversion** - Export to Markdown, HTML, DOCX, or JSON
+- **Image Extraction** - Automatically extract and preserve embedded images
+- **Formula Preservation** - Maintain mathematical formulas and special formatting
+- **Progress Tracking** - Real-time progress updates for large documents
+
 ### UI Features
 - 🎨 Glass morphism design with animated gradients
-- 🎯 Drag & drop file upload (up to 100MB by default)
-- 🗑️ Easy image removal and re-upload
+- 🎯 Drag & drop file upload (Images up to 10MB, PDFs up to 100MB)
+- 🔄 Easy file removal and re-upload
 - 📦 Grounding box visualization with proper coordinate scaling
 - ✨ Smooth animations (Framer Motion)
-- 📋 Copy/Download results
+- 📋 Copy/Download results in multiple formats
 - 🎛️ Advanced settings dropdown
 - 📝 HTML and Markdown rendering for formatted output
 - 🔍 Multiple bounding box support (handles multiple instances of found terms)
+- 📊 Progress bars for multi-page PDF processing
+- 💾 Direct download for converted documents (MD, HTML, DOCX)
 
 ## Configuration
 
@@ -106,19 +124,26 @@ CROP_MODE=true         # Enable dynamic cropping for large images
 
 ```
 deepseek-ocr/
-├── backend/           # FastAPI backend
-│   ├── main.py
+├── backend/                  # FastAPI backend
+│   ├── main.py              # Main API with OCR and PDF endpoints
+│   ├── pdf_utils.py         # PDF processing utilities (NEW)
+│   ├── format_converter.py  # Document format conversion (NEW)
 │   ├── requirements.txt
 │   └── Dockerfile
-├── frontend/          # React frontend
+├── frontend/                 # React frontend
 │   ├── src/
 │   │   ├── components/
-│   │   ├── App.jsx
+│   │   │   ├── ImageUpload.jsx    # File upload (images & PDFs)
+│   │   │   ├── PDFProcessor.jsx   # PDF processing UI (NEW)
+│   │   │   ├── ModeSelector.jsx
+│   │   │   ├── ResultPanel.jsx
+│   │   │   └── AdvancedSettings.jsx
+│   │   ├── App.jsx           # Main app with dual mode support
 │   │   └── main.jsx
 │   ├── package.json
 │   ├── nginx.conf
 │   └── Dockerfile
-├── models/            # Model cache
+├── models/                   # Model cache
 └── docker-compose.yml
 ```
 
@@ -287,6 +312,63 @@ For large images, the model uses dynamic cropping:
 - Coordinates are in [x1, y1, x2, y2] format (top-left, bottom-right)
 - **Supports multiple boxes**: When finding multiple instances, format is `[[x1,y1,x2,y2], [x1,y1,x2,y2], ...]`
 - Frontend automatically displays all boxes overlaid on the image with unique colors
+
+### POST /api/process-pdf (NEW!)
+
+Process PDF documents with OCR and export to various formats.
+
+**Parameters:**
+- `pdf_file` (file, required) - PDF file to process (up to 100MB)
+- `mode` (string) - OCR mode: `plain_ocr` | `describe` | `find_ref` | `freeform`
+- `prompt` (string) - Custom prompt for freeform mode
+- `output_format` (string) - Output format: `markdown` | `html` | `docx` | `json`
+- `grounding` (bool) - Enable bounding boxes (default: false)
+- `include_caption` (bool) - Add image descriptions (default: false)
+- `extract_images` (bool) - Extract embedded images from PDF (default: true)
+- `dpi` (int) - PDF rendering resolution (default: 144)
+- `base_size` (int) - Base processing size (default: 1024)
+- `image_size` (int) - Tile size for cropping (default: 640)
+- `crop_mode` (bool) - Enable dynamic cropping (default: true)
+
+**Response Formats:**
+
+**JSON Format** (`output_format=json`):
+```json
+{
+  "success": true,
+  "total_pages": 5,
+  "pages": [
+    {
+      "page_number": 1,
+      "text": "Extracted and cleaned text...",
+      "raw_text": "Raw model output with tags...",
+      "boxes": [{"label": "field", "box": [x1, y1, x2, y2]}],
+      "images": ["base64_encoded_image_data..."],
+      "image_dims": {"w": 1920, "h": 1080}
+    }
+  ],
+  "metadata": {
+    "mode": "plain_ocr",
+    "grounding": false,
+    "extract_images": true,
+    "dpi": 144
+  }
+}
+```
+
+**File Downloads** (`output_format=markdown|html|docx`):
+- Returns the document as a downloadable file
+- Markdown: `.md` file with preserved formatting
+- HTML: `.html` file with embedded styling and images
+- DOCX: `.docx` Word document with tables and formatting
+
+**Features:**
+- 📄 Multi-page processing with progress tracking
+- 🖼️ Automatic image extraction and embedding
+- 📐 Formula and formatting preservation
+- 🎨 Styled HTML output with tables and code blocks
+- 📝 Clean Markdown with proper structure
+- 📋 Professional DOCX with headings and tables
 
 ## Examples
 
