@@ -2,17 +2,28 @@ import os
 import re
 import tempfile
 import shutil
+import base64
 from typing import List, Dict, Any, Optional
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 import torch
 from transformers import AutoModel, AutoTokenizer
 from PIL import Image
 import uvicorn
 from decouple import config as env_config
+
+# Import PDF and document conversion utilities
+from pdf_utils import (
+    pdf_to_images_high_quality,
+    images_to_pdf,
+    extract_ref_patterns,
+    crop_images_from_refs,
+    clean_markdown_content
+)
+from format_converter import DocumentConverter
 
 # -----------------------------
 # Lifespan context for model loading
@@ -372,6 +383,199 @@ async def ocr_inference(
                 pass
         if out_dir:
             shutil.rmtree(out_dir, ignore_errors=True)
+
+@app.post("/api/process-pdf")
+async def process_pdf(
+    pdf_file: UploadFile = File(...),
+    mode: str = Form("plain_ocr"),
+    prompt: str = Form(""),
+    output_format: str = Form("markdown"),  # markdown, html, docx, json
+    grounding: bool = Form(False),
+    include_caption: bool = Form(False),
+    extract_images: bool = Form(True),
+    dpi: int = Form(144),
+    base_size: int = Form(1024),
+    image_size: int = Form(640),
+    crop_mode: bool = Form(True),
+):
+    """
+    Process PDF document with OCR and convert to various formats
+
+    - **pdf_file**: PDF file to process
+    - **mode**: OCR mode (plain_ocr, markdown, tables_csv, etc.)
+    - **prompt**: Custom prompt for freeform mode
+    - **output_format**: Output format (markdown, html, docx, json)
+    - **grounding**: Enable grounding boxes
+    - **include_caption**: Add image descriptions
+    - **extract_images**: Extract images from PDF
+    - **dpi**: PDF rendering resolution (default: 144)
+    - **base_size**: Base processing size
+    - **image_size**: Image size parameter
+    - **crop_mode**: Enable crop mode
+    """
+    if model is None or tokenizer is None:
+        raise HTTPException(status_code=503, detail="Model not loaded yet")
+
+    # Validate output format
+    if output_format not in ["markdown", "html", "docx", "json"]:
+        raise HTTPException(status_code=400, detail="Invalid output format. Must be: markdown, html, docx, or json")
+
+    try:
+        # Read PDF file
+        pdf_bytes = await pdf_file.read()
+
+        # Convert PDF to images
+        print(f"📄 Converting PDF to images (DPI: {dpi})...")
+        images = pdf_to_images_high_quality(pdf_bytes, dpi=dpi)
+        total_pages = len(images)
+        print(f"✅ Converted {total_pages} pages")
+
+        # Process each page
+        pages_content = []
+        converter = DocumentConverter()
+
+        for page_idx, img in enumerate(images):
+            print(f"🔍 Processing page {page_idx + 1}/{total_pages}...")
+
+            # Build prompt for this page
+            prompt_text = build_prompt(
+                mode=mode,
+                user_prompt=prompt,
+                grounding=grounding,
+                find_term=None,
+                schema=None,
+                include_caption=include_caption,
+            )
+
+            # Save image temporarily
+            tmp_img = None
+            out_dir = None
+            try:
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+                    img.save(tmp, format="PNG")
+                    tmp_img = tmp.name
+
+                orig_w, orig_h = img.size
+                out_dir = tempfile.mkdtemp(prefix="dsocr_pdf_")
+
+                # Run inference
+                res = model.infer(
+                    tokenizer,
+                    prompt=prompt_text,
+                    image_file=tmp_img,
+                    output_path=out_dir,
+                    base_size=base_size,
+                    image_size=image_size,
+                    crop_mode=crop_mode,
+                    save_results=False,
+                    test_compress=False,
+                    eval_mode=True,
+                )
+
+                # Normalize response
+                if isinstance(res, str):
+                    text = res.strip()
+                elif isinstance(res, dict) and "text" in res:
+                    text = str(res["text"]).strip()
+                elif isinstance(res, (list, tuple)):
+                    text = "\n".join(map(str, res)).strip()
+                else:
+                    text = ""
+
+                if not text:
+                    mmd = os.path.join(out_dir, "result.mmd")
+                    if os.path.exists(mmd):
+                        with open(mmd, "r", encoding="utf-8") as fh:
+                            text = fh.read().strip()
+                if not text:
+                    text = f"No text returned for page {page_idx + 1}."
+
+                # Extract images if requested
+                page_images = []
+                if extract_images:
+                    matches, matches_image, matches_other = extract_ref_patterns(text)
+                    if matches_image:
+                        cropped = crop_images_from_refs(img, matches)
+                        for cropped_img in cropped:
+                            # Convert to base64
+                            img_buffer = tempfile.NamedTemporaryFile(delete=False, suffix=".jpg")
+                            cropped_img.save(img_buffer.name, format="JPEG", quality=95)
+                            with open(img_buffer.name, "rb") as f:
+                                img_b64 = base64.b64encode(f.read()).decode('utf-8')
+                                page_images.append(img_b64)
+                            os.remove(img_buffer.name)
+
+                        # Clean the text and add image placeholders
+                        text = clean_markdown_content(text, matches_image, matches_other)
+                        for img_idx in range(len(page_images)):
+                            text = f"[IMAGE_{img_idx}]\n" + text
+
+                # Parse grounding boxes
+                boxes = parse_detections(text, orig_w, orig_h) if ("<|det|>" in text or "<|ref|>" in text) else []
+
+                # Clean grounding tags from display text
+                display_text = clean_grounding_text(text) if ("<|ref|>" in text or "<|grounding|>" in text) else text
+
+                pages_content.append({
+                    'page_number': page_idx + 1,
+                    'text': display_text,
+                    'raw_text': text,
+                    'boxes': boxes,
+                    'images': page_images,
+                    'image_dims': {'w': orig_w, 'h': orig_h}
+                })
+
+            finally:
+                if tmp_img:
+                    try:
+                        os.remove(tmp_img)
+                    except Exception:
+                        pass
+                if out_dir:
+                    shutil.rmtree(out_dir, ignore_errors=True)
+
+        print(f"✅ Processed all {total_pages} pages")
+
+        # Convert to requested format
+        if output_format == "json":
+            return JSONResponse({
+                "success": True,
+                "total_pages": total_pages,
+                "pages": pages_content,
+                "metadata": {
+                    "mode": mode,
+                    "grounding": grounding,
+                    "extract_images": extract_images,
+                    "dpi": dpi
+                }
+            })
+        elif output_format == "markdown":
+            md_content = converter.to_markdown(pages_content, include_images=extract_images)
+            return StreamingResponse(
+                iter([md_content.encode('utf-8')]),
+                media_type="text/markdown",
+                headers={"Content-Disposition": f"attachment; filename=ocr_result.md"}
+            )
+        elif output_format == "html":
+            html_content = converter.to_html(pages_content, include_images=extract_images)
+            return StreamingResponse(
+                iter([html_content.encode('utf-8')]),
+                media_type="text/html",
+                headers={"Content-Disposition": f"attachment; filename=ocr_result.html"}
+            )
+        elif output_format == "docx":
+            docx_buffer = converter.to_docx(pages_content, include_images=extract_images)
+            return StreamingResponse(
+                docx_buffer,
+                media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                headers={"Content-Disposition": f"attachment; filename=ocr_result.docx"}
+            )
+
+    except Exception as e:
+        import traceback
+        print(f"❌ Error processing PDF: {e}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {str(e)}")
 
 if __name__ == "__main__":
     host = env_config("API_HOST", default="0.0.0.0")
