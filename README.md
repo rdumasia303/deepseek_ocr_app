@@ -1,10 +1,46 @@
 # 🚀 DeepSeek OCR - React + FastAPI
 
-Modern OCR web application powered by DeepSeek-OCR with a stunning React frontend and FastAPI backend.
+Modern OCR web application powered by DeepSeek-OCR with a stunning React frontend and FastAPI backend. **Now with PDF processing and multi-format document conversion!**
 
 ![DeepSeek OCR in Action](assets/multi-bird.png)
 
-> **Recent Updates (v2.2.0)**
+## ✨ What's New in v2.2.0 - PDF Processing & Document Conversion
+
+We've added powerful PDF processing capabilities based on community feedback! Here's what you can do now:
+
+### 📄 Process Entire PDF Documents
+- Upload PDF files up to 100MB
+- Automatic multi-page OCR processing
+- Real-time progress tracking for large documents
+- Extract text from scanned PDFs or image-based documents
+
+### 🔄 Convert to Multiple Formats
+Export your OCR results in the format you need:
+- **Markdown (.md)** - Clean, structured text perfect for documentation
+- **HTML (.html)** - Styled documents with embedded images and tables
+- **Word (.docx)** - Professional documents with formatting, tables, and images
+- **JSON** - Structured data for programmatic access
+
+### 🖼️ Automatic Image Extraction
+- Detects and extracts images from PDF pages
+- Embeds images in exported documents
+- Preserves image placement and context
+
+### 📐 Formula & Formatting Preservation
+- Maintains mathematical formulas (LaTeX syntax)
+- Preserves tables, headings, and document structure
+- Cleans up special characters while keeping formatting intact
+
+### 🎯 Use Cases
+- **Document Digitization** - Convert scanned PDFs to editable formats
+- **Data Extraction** - Pull structured data from forms and invoices
+- **Content Migration** - Convert PDFs to Markdown for wikis/documentation
+- **Academic Papers** - Extract text and formulas from research papers
+- **Business Documents** - Convert reports to Word for editing
+
+---
+
+> **Latest Updates (v2.2.0)** - December 2024
 > - 🎉 **NEW: PDF Processing** - Upload PDFs and extract text from all pages
 > - 🎉 **NEW: Multi-Format Export** - Convert to Markdown, HTML, DOCX, or JSON
 > - 🎉 **NEW: Automatic Image Extraction** - Extract and preserve images from PDFs
@@ -44,6 +80,52 @@ Modern OCR web application powered by DeepSeek-OCR with a stunning React fronten
    - **Frontend**: http://localhost:3000 (or your configured FRONTEND_PORT)
    - **Backend API**: http://localhost:8000 (or your configured API_PORT)
    - **API Docs**: http://localhost:8000/docs
+
+## 🎓 How to Use
+
+### Processing Images (Single Image OCR)
+
+1. Select **"Image OCR"** mode in the toggle
+2. Upload an image (PNG, JPG, WEBP, etc.)
+3. Choose your OCR mode:
+   - **Plain OCR** - Extract all text
+   - **Describe** - Get image description
+   - **Find** - Locate specific terms
+   - **Freeform** - Use custom prompts
+4. Click **"Analyze Image"**
+5. View results with bounding boxes (if enabled)
+6. Copy or download the extracted text
+
+### Processing PDFs (Multi-Page Documents) - NEW!
+
+1. Select **"PDF Processing"** mode in the toggle
+2. Upload a PDF file (up to 100MB)
+3. Choose your OCR mode (same as above)
+4. Select **output format**:
+   - 📝 **Markdown** - For documentation, wikis, GitHub
+   - 🌐 **HTML** - For web publishing, styled viewing
+   - 📄 **DOCX** - For Word editing, professional documents
+   - 📊 **JSON** - For programmatic access, data extraction
+5. Click **"Process PDF"**
+6. Watch the progress bar as pages are processed
+7. Your file downloads automatically when complete!
+
+### Tips for Best Results
+
+- **For scanned documents**: Use higher DPI (144-300) in advanced settings
+- **For tables**: The model excels at extracting structured data
+- **For formulas**: Mathematical notation is preserved in output
+- **For images in PDFs**: Enable "Extract Images" to include them in output
+- **For large PDFs**: JSON format is fastest, DOCX takes longer due to formatting
+
+### Output Format Comparison
+
+| Format | Best For | Features | File Size |
+|--------|----------|----------|-----------|
+| **Markdown** | Documentation, GitHub, wikis | Clean text, tables, code blocks | Smallest |
+| **HTML** | Web viewing, sharing | Styled output, embedded images, tables | Medium |
+| **DOCX** | Editing, professional docs | Full formatting, images, tables | Largest |
+| **JSON** | Data processing, APIs | Structured data, metadata, page info | Small |
 
 ## Features
 
@@ -113,10 +195,25 @@ CROP_MODE=true         # Enable dynamic cropping for large images
 
 ## Tech Stack
 
-- **Frontend**: React 18 + Vite 5 + TailwindCSS 3 + Framer Motion 11
-- **Backend**: FastAPI + PyTorch + Transformers 4.46 + DeepSeek-OCR
+### Frontend
+- **Framework**: React 18 + Vite 5
+- **Styling**: TailwindCSS 3 + Custom Glass Morphism
+- **Animations**: Framer Motion 11
+- **HTTP Client**: Axios
+- **File Upload**: React Dropzone
+
+### Backend
+- **API Framework**: FastAPI (async Python web framework)
+- **ML/AI**: PyTorch + Transformers 4.46 + DeepSeek-OCR
+- **PDF Processing**: PyMuPDF (fitz) + img2pdf
+- **Document Conversion**:
+  - python-docx (Word documents)
+  - markdown (Markdown processing)
+  - Custom HTML generator
 - **Configuration**: python-decouple for environment management
-- **Server**: Nginx (reverse proxy)
+
+### Infrastructure
+- **Server**: Nginx (reverse proxy & static file serving)
 - **Container**: Docker + Docker Compose with multi-stage builds
 - **GPU**: NVIDIA CUDA support (tested on RTX 3090, RTX 5090)
 
