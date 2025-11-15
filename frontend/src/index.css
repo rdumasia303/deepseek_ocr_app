@@ -2,49 +2,125 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  body {
-    @apply bg-dark-200 text-white;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  }
+html,
+html body {
+  margin: 0;
+  padding: 0;
+}
+
+html body,
+body {
+  background: linear-gradient(135deg, #e0f2f7 0%, #a1c6e8 100%) !important; /* 更冷的蓝色渐变 */
+  color: #2c3e50 !important;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+html.dark body,
+.dark body {
+  background: linear-gradient(135deg, #141e30 0%, #243b55 100%) !important;
+  color: #f7fafc !important;
 }
 
 @layer components {
   .glass {
-    @apply bg-white/5 backdrop-blur-xl border border-white/10;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
   }
   
   .glass-hover {
-    @apply transition-all hover:bg-white/10 hover:border-white/20;
+    transition: all 0.3s ease;
+  }
+  
+  .glass-hover:hover {
+    background: rgba(255, 255, 255, 0.4);
+    border-color: rgba(255, 255, 255, 0.4);
+  }
+  
+  .dark .glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .dark .glass-hover:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
   }
   
   .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500;
+    background: linear-gradient(to right, #2c3e50, #3498db, #2980b9);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  
+  .dark .gradient-text {
+    background: linear-gradient(to right, #22d3ee, #60a5fa, #a78bfa);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
   
   .gradient-border {
-    @apply relative bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 p-[2px] rounded-2xl;
+    position: relative;
+    background: linear-gradient(to right, #3498db, #2980b9, #2c3e50);
+    padding: 2px;
+    border-radius: 1rem;
+  }
+  
+  .dark .gradient-border {
+    background: linear-gradient(to right, #06b6d4, #3b82f6, #a855f7);
   }
   
   .gradient-bg {
-    @apply bg-gradient-to-br from-purple-900/20 via-pink-900/20 to-cyan-900/20;
+    background: linear-gradient(to bottom right, 
+      rgba(52, 152, 219, 0.15), 
+      rgba(149, 165, 166, 0.15), 
+      rgba(236, 240, 241, 0.2)
+    );
+  }
+  
+  .dark .gradient-bg {
+    background: linear-gradient(to bottom right,
+      rgba(88, 28, 135, 0.2),
+      rgba(30, 64, 175, 0.2),
+      rgba(22, 78, 99, 0.2)
+    );
   }
 }
 
-/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-dark-100;
+  background: rgba(189, 195, 199, 0.3);
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-purple-500/30 rounded-full;
+  background: rgba(52, 152, 219, 0.5);
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-purple-500/50;
+  background: rgba(52, 152, 219, 0.7);
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: rgba(30, 41, 59, 0.5);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.3);
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.5);
 }

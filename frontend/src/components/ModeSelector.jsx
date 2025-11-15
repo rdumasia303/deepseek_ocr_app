@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { FileText, Eye, Search, Wand2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next';
 
 const modes = [
   { id: 'plain_ocr', name: 'Plain OCR', icon: FileText, color: 'from-blue-500 to-cyan-500', desc: 'Extract raw text', needsInput: false },
@@ -18,10 +19,12 @@ export default function ModeSelector({
 }) {
   const selectedMode = modes.find(m => m.id === mode)
   const needsInput = selectedMode?.needsInput
+  const { t } = useTranslation();
+  
 
   return (
     <div className="glass p-4 rounded-2xl space-y-3">
-      <h3 className="text-sm font-semibold text-gray-200">Mode</h3>
+      <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">{t('mode')}</h3> {/* Adjusted text color for both modes */}
 
       <div className="grid grid-cols-4 gap-2">
         {modes.map((m) => {
@@ -55,13 +58,13 @@ export default function ModeSelector({
                   w-8 h-8 mx-auto rounded-lg flex items-center justify-center
                   ${isSelected 
                     ? `bg-gradient-to-br ${m.color}` 
-                    : 'bg-white/10'
+                    : 'bg-white/10 dark:bg-white/20'
                   }
                 `}>
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-4 h-4 text-gray-800 dark:text-gray-200" />
                 </div>
-                <p className={`text-xs font-medium ${isSelected ? 'text-white' : 'text-gray-300'}`}>
-                  {m.name}
+                <p className={`text-xs font-medium ${isSelected ? 'text-white' : 'text-gray-800 dark:text-gray-300'}`}>
+                  {t(m.id)}
                 </p>
               </div>
             </motion.button>
@@ -79,8 +82,8 @@ export default function ModeSelector({
             type="text"
             value={findTerm}
             onChange={(e) => onFindTermChange(e.target.value)}
-            placeholder="Enter term to find (e.g., Total, Invoice #)"
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-purple-500 transition-colors"
+            placeholder={t('enter_find_term')}
+            className="w-full bg-white/5 dark:bg-white/10 border border-white/10 dark:border-white/20 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-gray-300 focus:outline-none focus:border-purple-500 transition-colors"
           />
         </motion.div>
       )}
@@ -94,8 +97,8 @@ export default function ModeSelector({
           <textarea
             value={prompt}
             onChange={(e) => onPromptChange(e.target.value)}
-            placeholder="Enter your custom prompt..."
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-purple-500 transition-colors resize-none"
+            placeholder={t('enter_custom_prompt')}
+            className="w-full bg-white/5 dark:bg-white/10 border border-white/10 dark:border-white/20 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-gray-300 focus:outline-none focus:border-purple-500 transition-colors resize-none"
             rows={2}
           />
         </motion.div>
