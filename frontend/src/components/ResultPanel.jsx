@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Copy, Download, Sparkles, Loader2, CheckCircle2, ChevronDown } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
+import DOMPurify from 'dompurify'
 
 export default function ResultPanel({ result, loading, imagePreview, onCopy, onDownload }) {
   const canvasRef = useRef(null)
@@ -230,7 +231,7 @@ export default function ResultPanel({ result, loading, imagePreview, onCopy, onD
               {isHTML ? (
                 <div 
                   className="prose prose-invert prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: result.text }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(result.text) }}
                   style={{
                     color: '#e5e7eb',
                   }}

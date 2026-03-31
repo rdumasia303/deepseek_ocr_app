@@ -86,11 +86,14 @@ app = FastAPI(
 )
 
 # CORS middleware for React frontend
+CORS_ORIGINS = env_config("CORS_ORIGINS", default="").split(",")
+CORS_ORIGINS = [o.strip() for o in CORS_ORIGINS if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ORIGINS if CORS_ORIGINS else ["http://localhost:3000"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
@@ -373,7 +376,8 @@ async def ocr_inference(
         })
     
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {str(e)}")
+        print(f"OCR inference error: {type(e).__name__}: {str(e)}")
+        raise HTTPException(status_code=500, detail="An internal error occurred during OCR processing.")
     
     finally:
         if tmp_img:
@@ -573,9 +577,9 @@ async def process_pdf(
 
     except Exception as e:
         import traceback
-        print(f"❌ Error processing PDF: {e}")
+        print(f"Error processing PDF: {e}")
         print(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {str(e)}")
+        raise HTTPException(status_code=500, detail="An internal error occurred during PDF processing.")
 
 if __name__ == "__main__":
     host = env_config("API_HOST", default="0.0.0.0")

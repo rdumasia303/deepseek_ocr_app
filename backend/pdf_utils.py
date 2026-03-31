@@ -3,6 +3,7 @@ PDF Processing Utilities for DeepSeek OCR
 Handles PDF to image conversion and batch processing
 """
 
+import ast
 import io
 import re
 from typing import List, Tuple, Dict, Any
@@ -39,8 +40,8 @@ def pdf_to_images_high_quality(pdf_bytes: bytes, dpi: int = 144) -> List[Image.I
         # Render page to pixmap
         pixmap = page.get_pixmap(matrix=matrix, alpha=False)
 
-        # Allow large images
-        Image.MAX_IMAGE_PIXELS = None
+        # Allow reasonably large images (200 megapixels) but not decompression bombs
+        Image.MAX_IMAGE_PIXELS = 200_000_000
 
         # Convert to PIL Image
         img_data = pixmap.tobytes("png")
@@ -130,7 +131,7 @@ def parse_coordinates(ref_text: Tuple, image_width: int, image_height: int) -> D
     """
     try:
         label_type = ref_text[1]
-        cor_list = eval(ref_text[2])
+        cor_list = ast.literal_eval(ref_text[2])
 
         # Scale coordinates from 0-999 to actual pixels
         scaled_boxes = []
