@@ -252,6 +252,12 @@ docker compose down
 docker compose up --build
 ```
 
+With the backend Python dependencies installed, run the grounding parser regressions without loading a model or using a GPU:
+
+```bash
+python -m unittest discover -s backend -p test_grounding.py
+```
+
 ## Requirements
 
 ### Hardware

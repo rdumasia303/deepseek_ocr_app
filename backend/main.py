@@ -173,21 +173,16 @@ def build_prompt(
 #  - [[312, 339, 480, 681]]
 #  - [[504, 700, 625, 910], [771, 570, 996, 996]]
 #  - [[110, 310, 255, 800], [312, 343, 479, 680], ...]
-# Using a greedy bracket capture ensures we include all inner lists up to the last ']' before </|det|>
+# Stop at the closing detection tag so separate labels do not become one coordinate list.
 DET_BLOCK = re.compile(
-    r"<\|ref\|>(?P<label>.*?)<\|/ref\|>\s*<\|det\|>\s*(?P<coords>\[.*\])\s*<\|/det\|>",
+    r"<\|ref\|>(?P<label>.*?)<\|/ref\|>\s*<\|det\|>\s*(?P<coords>\[.*?\])\s*<\|/det\|>",
     re.DOTALL,
 )
 
 def clean_grounding_text(text: str) -> str:
     """Remove grounding tags from text for display, keeping labels"""
     # Replace <|ref|>label<|/ref|><|det|>[...any nested lists...]<|/det|> with just the label
-    cleaned = re.sub(
-        r"<\|ref\|>(.*?)<\|/ref\|>\s*<\|det\|>\s*\[.*\]\s*<\|/det\|>",
-        r"\1",
-        text,
-        flags=re.DOTALL,
-    )
+    cleaned = DET_BLOCK.sub(r"\g<label>", text)
     # Also remove any standalone grounding tags
     cleaned = re.sub(r"<\|grounding\|>", "", cleaned)
     return cleaned.strip()
